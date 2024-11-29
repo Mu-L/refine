@@ -1,116 +1,82 @@
 import React from "react";
+import { useShowButton } from "@refinedev/core";
 import {
-    useCan,
-    useNavigation,
-    useTranslate,
-    useResource,
-    useRouterContext,
-} from "@pankod/refine-core";
-import {
-    RefineButtonTestIds,
-    RefineShowButtonProps,
-} from "@pankod/refine-ui-types";
-import { IconButton, Button, ButtonProps } from "@chakra-ui/react";
-import { IconEye, TablerIconProps } from "@tabler/icons";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
+import { IconButton, Button } from "@chakra-ui/react";
+import { IconEye } from "@tabler/icons-react";
 
-export type ShowButtonProps = Omit<
-    RefineShowButtonProps<
-        ButtonProps,
-        {
-            svgIconProps?: TablerIconProps;
-        }
-    >,
-    "ignoreAccessControlProvider"
->;
+import type { ShowButtonProps } from "../types";
 
 /**
  * `<ShowButton>` uses Chakra UI {@link https://chakra-ui.com/docs/components/button `<Button> `} component.
- * It uses the {@link https://refine.dev/docs/core/hooks/navigation/useNavigation#show `show`} method from {@link https://refine.dev/docs/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
- * It can be useful when red sirecting the app to the show page with the record id route of resource.
+ * It uses the {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation#show `show`} method from {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
+ * It can be useful when redirecting the app to the show page with the record id route of resource.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/chakra-ui/components/buttons/show-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/chakra-ui/components/buttons/show-button} for more details.
  */
 export const ShowButton: React.FC<ShowButtonProps> = ({
-    resourceNameOrRouteName,
-    recordItemId,
-    hideText = false,
-    accessControl,
-    svgIconProps,
-    children,
-    onClick,
-    ...rest
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName,
+  recordItemId,
+  hideText = false,
+  accessControl,
+  svgIconProps,
+  meta,
+  children,
+  onClick,
+  ...rest
 }) => {
-    const accessControlEnabled = accessControl?.enabled;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const { resourceName, id, resource } = useResource({
-        resourceNameOrRouteName,
-        recordItemId,
-    });
+  const { to, label, title, hidden, disabled, LinkComponent } = useShowButton({
+    resource: resourceNameFromProps ?? resourceNameOrRouteName,
+    id: recordItemId,
+    accessControl,
+    meta,
+  });
 
-    const { showUrl: generateShowUrl } = useNavigation();
-    const { Link } = useRouterContext();
+  if (hidden) return null;
 
-    const translate = useTranslate();
-
-    const { data } = useCan({
-        resource: resourceName,
-        action: "show",
-        params: { id, resource },
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-    });
-
-    const disabledTitle = () => {
-        if (data?.can) return "";
-        else if (data?.reason) return data.reason;
-        else
-            return translate(
-                "buttons.notAccessTitle",
-                "You don't have permission to access",
-            );
-    };
-
-    const showUrl = generateShowUrl(resource.route!, id!);
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Link
-            to={showUrl}
-            replace={false}
-            onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
-                if (onClick) {
-                    e.preventDefault();
-                    onClick(e);
-                }
-            }}
+  return (
+    <LinkComponent
+      to={to}
+      replace={false}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
+        if (onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+    >
+      {hideText ? (
+        <IconButton
+          variant="outline"
+          aria-label={label}
+          isDisabled={disabled}
+          title={title}
+          data-testid={RefineButtonTestIds.ShowButton}
+          className={RefineButtonClassNames.ShowButton}
+          {...rest}
         >
-            {hideText ? (
-                <IconButton
-                    variant="outline"
-                    aria-label={translate("buttons.show", "Show")}
-                    disabled={data?.can === false}
-                    title={disabledTitle()}
-                    data-testid={RefineButtonTestIds.ShowButton}
-                    {...rest}
-                >
-                    <IconEye size={20} {...svgIconProps} />
-                </IconButton>
-            ) : (
-                <Button
-                    variant="outline"
-                    disabled={data?.can === false}
-                    leftIcon={<IconEye size={20} {...svgIconProps} />}
-                    title={disabledTitle()}
-                    data-testid={RefineButtonTestIds.ShowButton}
-                    {...rest}
-                >
-                    {children ?? translate("buttons.show", "Show")}
-                </Button>
-            )}
-        </Link>
-    );
+          <IconEye size={20} {...svgIconProps} />
+        </IconButton>
+      ) : (
+        <Button
+          variant="outline"
+          isDisabled={disabled}
+          leftIcon={<IconEye size={20} {...svgIconProps} />}
+          title={title}
+          data-testid={RefineButtonTestIds.ShowButton}
+          className={RefineButtonClassNames.ShowButton}
+          {...rest}
+        >
+          {children ?? label}
+        </Button>
+      )}
+    </LinkComponent>
+  );
 };

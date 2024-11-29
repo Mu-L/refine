@@ -1,6 +1,6 @@
-import { buttonSaveTests } from "@pankod/refine-ui-tests";
+import { buttonSaveTests } from "@refinedev/ui-tests";
 import { SaveButton } from "./";
 
 describe("Save Button", () => {
-    buttonSaveTests.bind(this)(SaveButton);
+  buttonSaveTests.bind(this)(SaveButton);
 });

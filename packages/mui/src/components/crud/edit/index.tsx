@@ -1,74 +1,45 @@
-import React, { ReactNode } from "react";
+import React from "react";
 
 import {
-    useResourceWithRoute,
-    useMutationMode,
-    useNavigation,
-    useTranslate,
-    useRouterContext,
-    userFriendlyResourceName,
-    ResourceRouterParams,
-    useRefineContext,
-} from "@pankod/refine-core";
-import { RefineCrudEditProps } from "@pankod/refine-ui-types";
+  useMutationMode,
+  useNavigation,
+  useTranslate,
+  useUserFriendlyName,
+  useRefineContext,
+  useToPath,
+  useResource,
+  useRouterType,
+  useBack,
+  useGo,
+} from "@refinedev/core";
 
-import {
-    Card,
-    CardHeader,
-    IconButton,
-    CardContent,
-    CardActions,
-    CardProps,
-    CardHeaderProps,
-    CardContentProps,
-    CardActionsProps,
-    Typography,
-    Box,
-    BoxProps,
-} from "@mui/material";
+import Card from "@mui/material/Card";
+import CardHeader from "@mui/material/CardHeader";
+import IconButton from "@mui/material/IconButton";
+import CardContent from "@mui/material/CardContent";
+import CardActions from "@mui/material/CardActions";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+
+import { alpha } from "@mui/system";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import {
-    DeleteButton,
-    RefreshButton,
-    ListButton,
-    SaveButton,
-    Breadcrumb,
-    SaveButtonProps,
+  DeleteButton,
+  RefreshButton,
+  ListButton,
+  SaveButton,
+  Breadcrumb,
+  type ListButtonProps,
+  type RefreshButtonProps,
+  type DeleteButtonProps,
+  type SaveButtonProps,
+  AutoSaveIndicator,
 } from "@components";
-import { DeleteButtonProps } from "@components";
-
-export type EditProps = RefineCrudEditProps<
-    SaveButtonProps,
-    DeleteButtonProps,
-    BoxProps,
-    CardActionsProps,
-    CardProps,
-    CardHeaderProps,
-    CardContentProps,
-    {
-        /**
-         * @deprecated use `headerButtons` or `footerButtons` instead.
-         */
-        actionButtons?: React.ReactNode;
-        /**
-         * @deprecated use `wrapperProps` instead.
-         */
-        cardProps?: CardProps;
-        /**
-         * @deprecated use `headerProps` instead.
-         */
-        cardHeaderProps?: CardHeaderProps;
-        /**
-         * @deprecated use `contentProps` instead.
-         */
-        cardContentProps?: CardContentProps;
-        /**
-         * @deprecated use `footerButtonProps` instead.
-         */
-        cardActionsProps?: CardActionsProps;
-    }
->;
+import type { EditProps } from "../types";
+import { RefinePageHeaderClassNames } from "@refinedev/ui-types";
 
 /**
  * `<Edit>` provides us a layout for displaying the page.
@@ -77,180 +48,230 @@ export type EditProps = RefineCrudEditProps<
  * @see {@link https://refine.dev/docs/ui-frameworks/mui/components/basic-views/edit} for more details.
  */
 export const Edit: React.FC<EditProps> = ({
-    title,
-    actionButtons,
-    saveButtonProps,
-    mutationMode: mutationModeProp,
-    recordItemId,
-    children,
-    deleteButtonProps,
-    canDelete,
-    resource: resourceFromProps,
-    isLoading = false,
-    cardProps,
-    cardHeaderProps,
-    cardContentProps,
-    cardActionsProps,
-    breadcrumb: breadcrumbFromProps,
-    dataProviderName,
-    wrapperProps,
-    headerProps,
-    contentProps,
-    headerButtonProps,
-    headerButtons,
-    footerButtonProps,
-    footerButtons,
-    goBack: goBackFromProps,
+  title,
+  saveButtonProps: saveButtonPropsFromProps,
+  mutationMode: mutationModeProp,
+  recordItemId,
+  children,
+  deleteButtonProps: deleteButtonPropsFromProps,
+  canDelete,
+  resource: resourceFromProps,
+  isLoading = false,
+  breadcrumb: breadcrumbFromProps,
+  dataProviderName,
+  wrapperProps,
+  headerProps,
+  contentProps,
+  headerButtonProps,
+  headerButtons,
+  footerButtonProps,
+  footerButtons,
+  goBack: goBackFromProps,
+  autoSaveProps,
 }) => {
-    const translate = useTranslate();
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
+  const { mutationMode: mutationModeContext } = useMutationMode();
+  const mutationMode = mutationModeProp ?? mutationModeContext;
 
-    const { goBack, list } = useNavigation();
+  const routerType = useRouterType();
+  const back = useBack();
+  const go = useGo();
+  const { goBack, list: legacyGoList } = useNavigation();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const resourceWithRoute = useResourceWithRoute();
+  const {
+    resource,
+    action,
+    id: idFromParams,
+    identifier,
+  } = useResource(resourceFromProps);
 
-    const { mutationMode: mutationModeContext } = useMutationMode();
+  const goListPath = useToPath({
+    resource,
+    action: "list",
+  });
 
-    const mutationMode = mutationModeProp ?? mutationModeContext;
+  const id = recordItemId ?? idFromParams;
 
-    const { useParams } = useRouterContext();
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const {
-        resource: routeResourceName,
-        action: routeFromAction,
-        id: idFromRoute,
-    } = useParams<ResourceRouterParams>();
+  const hasList = resource?.list && !recordItemId;
+  const isDeleteButtonVisible =
+    canDelete ??
+    ((resource?.meta?.canDelete ?? resource?.canDelete) ||
+      deleteButtonPropsFromProps);
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
-
-    const isDeleteButtonVisible =
-        canDelete ?? (resource.canDelete || deleteButtonProps);
-
-    const { options } = useRefineContext();
-    const breadcrumb =
-        typeof breadcrumbFromProps === "undefined"
-            ? options?.breadcrumb
-            : breadcrumbFromProps;
-
-    const breadcrumbComponent =
-        typeof breadcrumb !== "undefined" ? (
-            <>{breadcrumb}</> ?? undefined
-        ) : (
-            <Breadcrumb />
-        );
-
-    const id = recordItemId ?? idFromRoute;
-
-    const defaultHeaderButtons = (
-        <>
-            {!recordItemId && (
-                <ListButton
-                    {...(isLoading ? { disabled: true } : {})}
-                    resourceNameOrRouteName={resource.route}
-                />
-            )}
-            <RefreshButton
-                {...(isLoading ? { disabled: true } : {})}
-                resourceNameOrRouteName={resource.route}
-                recordItemId={id}
-                dataProviderName={dataProviderName}
-            />
-        </>
+  const breadcrumbComponent =
+    typeof breadcrumb !== "undefined" ? (
+      <>{breadcrumb}</> ?? undefined
+    ) : (
+      <Breadcrumb />
     );
 
-    const defaultFooterButtons = (
-        <>
-            {isDeleteButtonVisible && (
-                <DeleteButton
-                    {...(isLoading ? { disabled: true } : {})}
-                    mutationMode={mutationMode}
-                    variant="outlined"
-                    onSuccess={() => {
-                        list(resource.route ?? resource.name);
-                    }}
-                    dataProviderName={dataProviderName}
-                    {...deleteButtonProps}
-                />
-            )}
-            <SaveButton
-                {...(isLoading ? { disabled: true } : {})}
-                {...saveButtonProps}
-            />
-        </>
-    );
+  const listButtonProps: ListButtonProps | undefined = hasList
+    ? {
+        ...(isLoading ? { disabled: true } : {}),
+        resource: routerType === "legacy" ? resource?.route : identifier,
+      }
+    : undefined;
 
-    return (
-        <Card {...(cardProps ?? {})} {...(wrapperProps ?? {})}>
-            {breadcrumbComponent}
-            <CardHeader
-                sx={{ display: "flex", flexWrap: "wrap" }}
-                title={
-                    title ?? (
-                        <Typography variant="h5">
-                            {translate(
-                                `${resource.name}.titles.edit`,
-                                `Edit ${userFriendlyResourceName(
-                                    resource.label ?? resource.name,
-                                    "singular",
-                                )}`,
-                            )}
-                        </Typography>
-                    )
-                }
-                avatar={
-                    typeof goBackFromProps !== "undefined" ? (
-                        goBackFromProps
-                    ) : (
-                        <IconButton
-                            onClick={routeFromAction ? goBack : undefined}
-                        >
-                            <ArrowBackIcon />
-                        </IconButton>
-                    )
-                }
-                action={
-                    <Box
-                        display="flex"
-                        gap="16px"
-                        {...(headerButtonProps ?? {})}
-                    >
-                        {headerButtons
-                            ? typeof headerButtons === "function"
-                                ? headerButtons({
-                                      defaultButtons: defaultHeaderButtons,
-                                  })
-                                : headerButtons
-                            : defaultHeaderButtons}
-                    </Box>
-                }
-                {...(cardHeaderProps ?? {})}
-                {...(headerProps ?? {})}
-            />
-            <CardContent
-                {...(cardContentProps ?? {})}
-                {...(contentProps ?? {})}
+  const refreshButtonProps: RefreshButtonProps = {
+    ...(isLoading ? { disabled: true } : {}),
+    resource: routerType === "legacy" ? resource?.route : identifier,
+    recordItemId: id,
+    dataProviderName,
+  };
+
+  const defaultHeaderButtons = (
+    <Box display="flex" flexDirection="row" alignItems="center">
+      {autoSaveProps && <AutoSaveIndicator {...autoSaveProps} />}
+      {hasList && <ListButton {...listButtonProps} />}
+      <RefreshButton {...refreshButtonProps} />
+    </Box>
+  );
+
+  const deleteButtonProps: DeleteButtonProps | undefined = isDeleteButtonVisible
+    ? ({
+        ...(isLoading ? { disabled: true } : {}),
+        resource: routerType === "legacy" ? resource?.route : identifier,
+        mutationMode,
+        variant: "outlined",
+        onSuccess: () => {
+          if (routerType === "legacy") {
+            legacyGoList(resource?.route ?? resource?.name ?? "");
+          } else {
+            go({ to: goListPath });
+          }
+        },
+        recordItemId: id,
+        dataProviderName,
+        ...deleteButtonPropsFromProps,
+      } as const)
+    : undefined;
+
+  const saveButtonProps: SaveButtonProps = {
+    ...(isLoading ? { disabled: true } : {}),
+    ...saveButtonPropsFromProps,
+  };
+
+  const defaultFooterButtons = (
+    <>
+      {isDeleteButtonVisible && <DeleteButton {...deleteButtonProps} />}
+      <SaveButton {...saveButtonProps} />
+    </>
+  );
+
+  return (
+    <Card
+      {...(wrapperProps ?? {})}
+      sx={{
+        position: "relative",
+        ...wrapperProps?.sx,
+      }}
+    >
+      {isLoading && (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            // this is needed to support custom themes, dark mode etc.
+            bgcolor: (theme) => alpha(theme.palette.background.paper, 0.4),
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
+      {breadcrumbComponent}
+      <CardHeader
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          ".MuiCardHeader-action": {
+            margin: 0,
+            alignSelf: "center",
+          },
+        }}
+        title={
+          title ?? (
+            <Typography
+              variant="h5"
+              className={RefinePageHeaderClassNames.Title}
             >
-                {children}
-            </CardContent>
-            <CardActions
-                sx={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "16px",
-                    padding: "16px",
-                }}
-                {...(cardActionsProps ?? {})}
-                {...(footerButtonProps ?? {})}
+              {translate(
+                `${identifier}.titles.edit`,
+                `Edit ${getUserFriendlyName(
+                  resource?.meta?.label ??
+                    resource?.options?.label ??
+                    resource?.label ??
+                    identifier,
+                  "singular",
+                )}`,
+              )}
+            </Typography>
+          )
+        }
+        avatar={
+          typeof goBackFromProps !== "undefined" ? (
+            goBackFromProps
+          ) : (
+            <IconButton
+              onClick={
+                action !== "list" && typeof action !== "undefined"
+                  ? routerType === "legacy"
+                    ? goBack
+                    : back
+                  : undefined
+              }
             >
-                {footerButtons
-                    ? typeof footerButtons === "function"
-                        ? footerButtons({
-                              defaultButtons: defaultFooterButtons,
-                          })
-                        : footerButtons
-                    : actionButtons
-                    ? actionButtons
-                    : defaultFooterButtons}
-            </CardActions>
-        </Card>
-    );
+              <ArrowBackIcon />
+            </IconButton>
+          )
+        }
+        action={
+          <Box display="flex" gap="16px" {...(headerButtonProps ?? {})}>
+            {headerButtons
+              ? typeof headerButtons === "function"
+                ? headerButtons({
+                    defaultButtons: defaultHeaderButtons,
+                    listButtonProps,
+                    refreshButtonProps,
+                  })
+                : headerButtons
+              : defaultHeaderButtons}
+          </Box>
+        }
+        {...(headerProps ?? {})}
+      />
+      <CardContent {...(contentProps ?? {})}>{children}</CardContent>
+      <CardActions
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "16px",
+          padding: "16px",
+        }}
+        {...(footerButtonProps ?? {})}
+      >
+        {footerButtons
+          ? typeof footerButtons === "function"
+            ? footerButtons({
+                defaultButtons: defaultFooterButtons,
+                deleteButtonProps,
+                saveButtonProps,
+              })
+            : footerButtons
+          : defaultFooterButtons}
+      </CardActions>
+    </Card>
+  );
 };

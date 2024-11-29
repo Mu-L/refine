@@ -1,16 +1,11 @@
 ---
 id: nextjs
-title: Ant Design
-example-tags: [next.js,router-provider,antd]
+title: With Next.js
+example-tags: [next.js]
 ---
 
-**refine** allows you to build your [**SSR**](https://nextjs.org/docs/basic-features/pages#server-side-rendering) supported web applications using Next.js. With this example, you can see how to make a simple SSR supported CMS Admin panel using [Ant Design](https://ant.design/).
+Refine allows you to use the `app/` structure in your Next.js apps. To learn more about the `app/` directory, check out [Next.js app docs](https://nextjs.org/docs/app). In this example you will find how to use the `app/` directory with refine.
 
-[Refer to the refine Next.js documentation for more information. →](/docs/advanced-tutorials/ssr/nextjs.md)
+[Refer to the Refine Next.js documentation for more information. →](/docs/packages/list-of-packages)
 
-[View Next.js Example Source](https://github.com/refinedev/refine/tree/master/examples/refine-next)
-
-<iframe loading="lazy" src="https://stackblitz.com/github/refinedev/refine/tree/master/examples/i18n/nextjs/?embed=1&view=preview&theme=dark&preset=node&ctl=1"
-style={{width: "100%", height:"80vh", border: "0px", borderRadius: "8px", overflow:"hidden"}}
-    title="refine-nextjs-example"
-></iframe>
+<CodeSandboxExample path="with-nextjs" />

@@ -1,118 +1,171 @@
 import { renderHook } from "@testing-library/react";
-import ReactRouterDom from "react-router-dom";
 
-import { MockJSONServer, TestWrapper } from "@test";
+import { MockJSONServer, TestWrapper, mockLegacyRouterProvider } from "@test";
 
+import type { LegacyRouterProvider } from "../../contexts/router/legacy/types";
 import { useRedirectionAfterSubmission } from "../redirection";
 
-const mHistory = jest.fn();
+const legacyPushMock = jest.fn();
+const legacyReplaceMock = jest.fn();
 
-jest.mock("react-router-dom", () => ({
-    ...(jest.requireActual("react-router-dom") as typeof ReactRouterDom),
-    useNavigate: () => mHistory,
-}));
+const legacyRouterProvider: LegacyRouterProvider = {
+  ...mockLegacyRouterProvider(),
+  useHistory: () => {
+    return {
+      goBack: jest.fn(),
+      push: legacyPushMock,
+      replace: legacyReplaceMock,
+    };
+  },
+};
 
 describe("redirectionAfterSubmission Hook", () => {
-    const { result } = renderHook(() => useRedirectionAfterSubmission(), {
-        wrapper: TestWrapper({
-            dataProvider: MockJSONServer,
-            resources: [{ name: "posts", route: "posts" }],
-        }),
+  beforeEach(() => {
+    legacyPushMock.mockReset();
+    legacyReplaceMock.mockReset();
+  });
+
+  const { result } = renderHook(() => useRedirectionAfterSubmission(), {
+    wrapper: TestWrapper({
+      dataProvider: MockJSONServer,
+      resources: [{ name: "posts", route: "posts" }],
+      legacyRouterProvider,
+    }),
+  });
+
+  it("redirect list", async () => {
+    result.current({
+      redirect: "list",
+      resource: { route: "posts", name: "posts", list: () => null },
+      id: "1",
     });
 
-    it("redirect list", async () => {
-        result.current({
-            redirect: "list",
-            resource: { route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect false", async () => {
+    result.current({
+      redirect: false,
+      resource: { route: "posts", name: "posts" },
+      id: "1",
     });
 
-    it("redirect false", async () => {
-        result.current({
-            redirect: false,
-            resource: { route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).not.toBeCalled();
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect show, canShow false", async () => {
+    result.current({
+      redirect: "show",
+      resource: {
+        route: "posts",
+        name: "posts",
+        list: () => null,
+      },
+      id: "1",
     });
 
-    it("redirect show, canShow false", async () => {
-        result.current({
-            redirect: "show",
-            resource: { canShow: false, route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect show, canShow true", async () => {
+    result.current({
+      redirect: "show",
+      resource: {
+        canShow: true,
+        route: "posts",
+        name: "posts",
+        show: () => null,
+      },
+      id: "1",
     });
 
-    it("redirect show, canShow true", async () => {
-        result.current({
-            redirect: "show",
-            resource: { canShow: true, route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts/show/1");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts/show/1");
+  it("redirect edit, canEdit true", async () => {
+    result.current({
+      redirect: "edit",
+      resource: {
+        canEdit: true,
+        route: "posts",
+        name: "posts",
+        edit: () => null,
+      },
+      id: "1",
     });
 
-    it("redirect edit, canEdit true", async () => {
-        result.current({
-            redirect: "edit",
-            resource: { canEdit: true, route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts/edit/1");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts/edit/1");
+  it("redirect edit, canEdit false", async () => {
+    result.current({
+      redirect: "edit",
+      resource: {
+        canEdit: false,
+        route: "posts",
+        name: "posts",
+        list: () => null,
+      },
+      id: "1",
     });
 
-    it("redirect edit, canEdit false", async () => {
-        result.current({
-            redirect: "edit",
-            resource: { canEdit: false, route: "posts", name: "posts" },
-            id: "1",
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect create, canCreate true", async () => {
+    result.current({
+      redirect: "create",
+      resource: {
+        canCreate: true,
+        route: "posts",
+        name: "posts",
+        create: () => null,
+      },
     });
 
-    it("redirect create, canCreate true", async () => {
-        result.current({
-            redirect: "create",
-            resource: { canCreate: true, route: "posts", name: "posts" },
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts/create");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts/create");
+  it("redirect create, canCreate false", async () => {
+    result.current({
+      redirect: "create",
+      resource: {
+        canCreate: false,
+        route: "posts",
+        name: "posts",
+        list: () => null,
+      },
     });
 
-    it("redirect create, canCreate false", async () => {
-        result.current({
-            redirect: "create",
-            resource: { canCreate: false, route: "posts", name: "posts" },
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect edit, canEdit true, id null", async () => {
+    result.current({
+      redirect: "edit",
+      resource: {
+        canEdit: true,
+        route: "posts",
+        name: "posts",
+        list: () => null,
+      },
     });
 
-    it("redirect edit, canEdit true, id null", async () => {
-        result.current({
-            redirect: "edit",
-            resource: { canEdit: true, route: "posts", name: "posts" },
-        });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 
-        expect(mHistory).toBeCalledWith("/posts");
+  it("redirect show, canShow true, id null", async () => {
+    result.current({
+      redirect: "show",
+      resource: {
+        canShow: true,
+        route: "posts",
+        name: "posts",
+        show: () => null,
+        list: () => null,
+      },
     });
 
-    it("redirect show, canShow true, id null", async () => {
-        result.current({
-            redirect: "show",
-            resource: { canShow: true, route: "posts", name: "posts" },
-        });
-
-        expect(mHistory).toBeCalledWith("/posts");
-    });
+    expect(legacyPushMock).toBeCalledWith("/posts");
+  });
 });

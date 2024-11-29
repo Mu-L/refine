@@ -1,22 +1,36 @@
 import React from "react";
-import { useRouterContext, TitleProps } from "@pankod/refine-core";
+import {
+  useRouterContext,
+  type TitleProps,
+  useRouterType,
+  useLink,
+} from "@refinedev/core";
 import { Center } from "@mantine/core";
 
-import logo from "../../../assets/images/refine.svg";
-import logoCollapsed from "../../../assets/images/refine-collapsed.svg";
-
 export const Title: React.FC<TitleProps> = ({ collapsed }) => {
-    const { Link } = useRouterContext();
+  const routerType = useRouterType();
+  const Link = useLink();
+  const { Link: LegacyLink } = useRouterContext();
 
-    return (
-        <Link to="/">
-            <Center p="xs">
-                {collapsed ? (
-                    <img src={logoCollapsed} alt="Refine" />
-                ) : (
-                    <img src={logo} alt="Refine" width="140px" />
-                )}
-            </Center>
-        </Link>
-    );
+  const ActiveLink = routerType === "legacy" ? LegacyLink : Link;
+
+  return (
+    <ActiveLink to="/">
+      <Center p="xs">
+        {collapsed ? (
+          <img
+            src="https://refine.ams3.cdn.digitaloceanspaces.com/logo/refine-mini.svg"
+            alt="Refine"
+            style={{ maxHeight: "38px" }}
+          />
+        ) : (
+          <img
+            src="https://refine.ams3.cdn.digitaloceanspaces.com/logo/refine.svg"
+            alt="Refine"
+            width="140px"
+          />
+        )}
+      </Center>
+    </ActiveLink>
+  );
 };

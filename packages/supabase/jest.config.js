@@ -1,8 +1,10 @@
 module.exports = {
-    preset: "ts-jest",
-    rootDir: "./",
-    name: "supabase",
-    displayName: "supabase",
-    setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
-    testEnvironment: "jsdom",
+  preset: "ts-jest",
+  rootDir: "./",
+  displayName: "supabase",
+  setupFilesAfterEnv: ["<rootDir>/test/jest.setup.ts"],
+  testEnvironment: "jsdom",
+  moduleNameMapper: {
+    "^(..?/.+).js?$": "$1",
+  },
 };

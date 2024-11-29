@@ -1,7 +1,7 @@
-import { fieldEmailTests } from "@pankod/refine-ui-tests";
+import { fieldEmailTests } from "@refinedev/ui-tests";
 
 import { EmailField } from "./";
 
 describe("EmailField", () => {
-    fieldEmailTests.bind(this)(EmailField);
+  fieldEmailTests.bind(this)(EmailField);
 });

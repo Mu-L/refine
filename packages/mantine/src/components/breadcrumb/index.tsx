@@ -1,69 +1,83 @@
 import React from "react";
 import {
-    useBreadcrumb,
-    useRefineContext,
-    useRouterContext,
-} from "@pankod/refine-core";
-import { RefineBreadcrumbProps } from "@pankod/refine-ui-types";
+  matchResourceFromRoute,
+  useBreadcrumb,
+  useLink,
+  useRefineContext,
+  useResource,
+  useRouterContext,
+  useRouterType,
+} from "@refinedev/core";
+import type { RefineBreadcrumbProps } from "@refinedev/ui-types";
 
 import {
-    Text,
-    Breadcrumbs as MantineBreadcrumbs,
-    BreadcrumbsProps as MantineBreadcrumbProps,
-    Anchor,
-    Group,
+  Text,
+  Breadcrumbs,
+  type BreadcrumbsProps as MantineBreadcrumbProps,
+  Anchor,
+  Group,
 } from "@mantine/core";
-import { IconHome } from "@tabler/icons";
+import { IconHome } from "@tabler/icons-react";
 
 export type BreadcrumbProps = RefineBreadcrumbProps<MantineBreadcrumbProps>;
 
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({
-    breadcrumbProps,
-    showHome = true,
-    hideIcons = false,
+  breadcrumbProps,
+  showHome = true,
+  hideIcons = false,
+  meta,
 }) => {
-    const { breadcrumbs } = useBreadcrumb();
-    const { Link } = useRouterContext();
-    const { hasDashboard } = useRefineContext();
+  const routerType = useRouterType();
+  const { breadcrumbs } = useBreadcrumb({ meta });
+  const Link = useLink();
+  const { Link: LegacyLink } = useRouterContext();
 
-    if (breadcrumbs.length === 1) {
-        return null;
-    }
+  const { hasDashboard } = useRefineContext();
 
-    return (
-        <MantineBreadcrumbs
-            aria-label="breadcrumb"
-            styles={{
-                separator: { marginRight: 8, marginLeft: 8, color: "dimgray" },
-            }}
-            {...breadcrumbProps}
-        >
-            {showHome && hasDashboard && (
-                <Anchor component={Link} color="dimmed" to="/">
-                    <IconHome size={18} />
-                </Anchor>
+  const { resources } = useResource();
+
+  const rootRouteResource = matchResourceFromRoute("/", resources);
+
+  const ActiveLink = routerType === "legacy" ? LegacyLink : Link;
+
+  if (breadcrumbs.length === 1) {
+    return null;
+  }
+
+  return (
+    <Breadcrumbs
+      aria-label="breadcrumb"
+      styles={{
+        separator: { marginRight: 8, marginLeft: 8, color: "dimgray" },
+      }}
+      {...breadcrumbProps}
+    >
+      {showHome && (hasDashboard || rootRouteResource.found) && (
+        <Anchor component={ActiveLink as any} color="dimmed" to="/">
+          {rootRouteResource?.resource?.meta?.icon ?? <IconHome size={18} />}
+        </Anchor>
+      )}
+      {breadcrumbs.map(({ label, icon, href }) => {
+        return (
+          <Group key={label} spacing={4} align="center" noWrap>
+            {!hideIcons && icon}
+            {href ? (
+              <Anchor
+                component={ActiveLink as any}
+                color="dimmed"
+                to={href}
+                size="sm"
+              >
+                {label}
+              </Anchor>
+            ) : (
+              <Text color="dimmed" size="sm">
+                {label}
+              </Text>
             )}
-            {breadcrumbs.map(({ label, icon, href }) => {
-                return (
-                    <Group key={label} spacing={4} align="center" noWrap>
-                        {!hideIcons && icon}
-                        {href ? (
-                            <Anchor
-                                component={Link}
-                                color="dimmed"
-                                to={href}
-                                size="sm"
-                            >
-                                {label}
-                            </Anchor>
-                        ) : (
-                            <Text color="dimmed" size="sm">
-                                {label}
-                            </Text>
-                        )}
-                    </Group>
-                );
-            })}
-        </MantineBreadcrumbs>
-    );
+          </Group>
+        );
+      })}
+    </Breadcrumbs>
+  );
 };

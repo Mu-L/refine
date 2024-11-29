@@ -1,79 +1,70 @@
 import React from "react";
-import { useOne, useTranslate, useResource } from "@pankod/refine-core";
+import { useRefreshButton } from "@refinedev/core";
 import {
-    RefineButtonTestIds,
-    RefineRefreshButtonProps,
-} from "@pankod/refine-ui-types";
-import { IconButton, Button, ButtonProps } from "@chakra-ui/react";
-import { IconRefresh, TablerIconProps } from "@tabler/icons";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
+import { IconButton, Button } from "@chakra-ui/react";
+import { IconRefresh } from "@tabler/icons-react";
 
-export type RefreshButtonProps = RefineRefreshButtonProps<
-    ButtonProps,
-    {
-        svgIconProps?: TablerIconProps;
-    }
->;
+import type { RefreshButtonProps } from "../types";
 
 /**
  * `<RefreshButton>` uses Chakra UI {@link https://chakra-ui.com/docs/components/button `<Button> `} component.
- * to update the data shown on the page via the {@link https://refine.dev/docs/core/hooks/data/useOne `useOne`} method provided by your dataProvider.
+ * to update the data shown on the page via the {@link https://refine.dev/docs/api-reference/core/hooks/invalidate/useInvalidate `useInvalidate`} hook.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/chakra-ui/components/buttons/refresh-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/chakra-ui/components/buttons/refresh-button} for more details.
  */
 export const RefreshButton: React.FC<RefreshButtonProps> = ({
-    resourceNameOrRouteName,
-    recordItemId,
-    hideText = false,
-    metaData,
-    dataProviderName,
-    svgIconProps,
-    children,
-    onClick,
-    ...rest
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName,
+  recordItemId,
+  hideText = false,
+  dataProviderName,
+  svgIconProps,
+  children,
+  onClick,
+  meta: _meta,
+  metaData: _metaData,
+  ...rest
 }) => {
-    const { resourceName, id } = useResource({
-        resourceNameOrRouteName,
-        recordItemId,
-    });
+  const {
+    onClick: onRefresh,
+    label,
+    loading,
+  } = useRefreshButton({
+    resource: resourceNameFromProps ?? resourceNameOrRouteName,
+    id: recordItemId,
+    dataProviderName,
+  });
 
-    const translate = useTranslate();
-
-    const { refetch, isFetching } = useOne({
-        resource: resourceName,
-        id: id ?? "",
-        queryOptions: {
-            enabled: false,
-        },
-        metaData,
-        liveMode: "off",
-        dataProviderName,
-    });
-
-    return hideText ? (
-        <IconButton
-            variant="outline"
-            aria-label={translate("buttons.refresh", "Refresh")}
-            onClick={(e: React.PointerEvent<HTMLButtonElement>) =>
-                onClick ? onClick(e) : refetch()
-            }
-            disabled={isFetching}
-            data-testid={RefineButtonTestIds.RefreshButton}
-            {...rest}
-        >
-            <IconRefresh size={20} {...svgIconProps} />
-        </IconButton>
-    ) : (
-        <Button
-            variant="outline"
-            leftIcon={<IconRefresh size={20} {...svgIconProps} />}
-            isLoading={isFetching}
-            onClick={(e: React.PointerEvent<HTMLButtonElement>) =>
-                onClick ? onClick(e) : refetch()
-            }
-            data-testid={RefineButtonTestIds.RefreshButton}
-            {...rest}
-        >
-            {children ?? translate("buttons.refresh", "Refresh")}
-        </Button>
-    );
+  return hideText ? (
+    <IconButton
+      variant="outline"
+      aria-label={label}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        onClick ? onClick(e) : onRefresh();
+      }}
+      isLoading={loading}
+      data-testid={RefineButtonTestIds.RefreshButton}
+      className={RefineButtonClassNames.RefreshButton}
+      {...rest}
+    >
+      <IconRefresh size={20} {...svgIconProps} />
+    </IconButton>
+  ) : (
+    <Button
+      variant="outline"
+      leftIcon={<IconRefresh size={20} {...svgIconProps} />}
+      isLoading={loading}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        onClick ? onClick(e) : onRefresh();
+      }}
+      data-testid={RefineButtonTestIds.RefreshButton}
+      className={RefineButtonClassNames.RefreshButton}
+      {...rest}
+    >
+      {children ?? label}
+    </Button>
+  );
 };

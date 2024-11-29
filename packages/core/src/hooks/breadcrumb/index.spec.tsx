@@ -1,183 +1,184 @@
 import React from "react";
-import { renderHook } from "@testing-library/react";
-import { Route, Routes } from "react-router-dom";
 
-import { TestWrapper, ITestWrapperProps } from "@test";
+import { renderHook } from "@testing-library/react";
+
+import { type ITestWrapperProps, TestWrapper, mockRouterProvider } from "@test";
+
 import { useBreadcrumb } from ".";
 
-const renderWrapper = (
-    wrapperProps: ITestWrapperProps = {},
-    hasAction?: boolean,
-) => {
-    const Wrapper = TestWrapper(wrapperProps);
+const renderWrapper = (wrapperProps: ITestWrapperProps = {}) => {
+  const Wrapper = TestWrapper(wrapperProps);
 
-    const WrapperWith: React.FC<{ children: React.ReactNode }> = ({
-        children,
-    }) => (
-        <Wrapper>
-            <Routes>
-                <Route
-                    path={hasAction ? "/:resource/:action" : "/:resource"}
-                    element={children}
-                />
-            </Routes>
-        </Wrapper>
-    );
+  const WrapperWith: React.FC<{ children: React.ReactNode }> = ({
+    children,
+  }) => <Wrapper>{children}</Wrapper>;
 
-    return WrapperWith;
+  return WrapperWith;
 };
 
 const DummyResourcePage = () => <div>resource page</div>;
 const DummyIcon = <div>icon</div>;
 
 describe("useBreadcrumb Hook", () => {
-    it("Should only return `label` without `icon` and `href`", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper({
-                resources: [{ name: "posts" }],
-                routerInitialEntries: ["/posts"],
-            }),
-        });
-
-        expect(result.current.breadcrumbs).toEqual([{ label: "Posts" }]);
+  it("Should only return `label` without `icon` and `href`", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [{ name: "posts" }],
+        routerProvider: mockRouterProvider({
+          resource: { name: "posts" },
+        }),
+      }),
     });
 
-    it("Should return `label` and `icon` without `href`", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper({
-                resources: [
-                    {
-                        name: "posts",
-                        icon: DummyIcon,
-                    },
-                ],
-                routerInitialEntries: ["/posts"],
-            }),
-        });
+    expect(result.current.breadcrumbs).toEqual([{ label: "Posts" }]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([
-            { icon: <div>icon</div>, label: "Posts" },
-        ]);
+  it("Should return `label` and `icon` without `href`", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [
+          {
+            name: "posts",
+            icon: DummyIcon,
+          },
+        ],
+        routerProvider: mockRouterProvider({
+          resource: {
+            name: "posts",
+            icon: DummyIcon,
+          },
+        }),
+      }),
     });
 
-    it("if resource has `list` resource page should successfully return `href`", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper({
-                resources: [
-                    {
-                        name: "posts",
-                        route: "posts",
-                        list: DummyResourcePage,
-                    },
-                ],
-                routerInitialEntries: ["/posts"],
-            }),
-        });
+    expect(result.current.breadcrumbs).toEqual([
+      { icon: <div>icon</div>, label: "Posts" },
+    ]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([
-            { label: "Posts", href: "/posts" },
-        ]);
+  it("if resource has `list` resource page should successfully return `href`", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [
+          {
+            name: "posts",
+            route: "posts",
+            list: DummyResourcePage,
+          },
+        ],
+        routerProvider: mockRouterProvider({
+          resource: {
+            name: "posts",
+            route: "posts",
+            list: DummyResourcePage,
+          },
+        }),
+      }),
     });
 
-    it("if resource has custom `route` should shown with resource `label`", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper({
-                resources: [
-                    {
-                        name: "posts",
-                        label: "Hello",
-                        route: "custom-route",
-                    },
-                ],
-                routerInitialEntries: ["/custom-route"],
-            }),
-        });
+    expect(result.current.breadcrumbs).toEqual([
+      { label: "Posts", href: "/posts", icon: undefined },
+    ]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([{ label: "Hello" }]);
+  it("if the user is on the resource action page, the action name should be last in the breadcrumbs", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [
+          {
+            name: "posts",
+            icon: DummyIcon,
+            list: DummyResourcePage,
+            create: DummyResourcePage,
+          },
+        ],
+        routerProvider: mockRouterProvider({
+          action: "create",
+          resource: {
+            name: "posts",
+            meta: { icon: DummyIcon },
+            list: DummyResourcePage,
+            create: DummyResourcePage,
+          },
+        }),
+      }),
     });
 
-    it("if the user is on the resource action page, the action name should be last in the breadcrumbs", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper(
-                {
-                    resources: [
-                        {
-                            name: "posts",
-                            route: "posts",
-                            icon: DummyIcon,
-                            list: DummyResourcePage,
-                            create: DummyResourcePage,
-                        },
-                    ],
-                    routerInitialEntries: ["/posts/create"],
-                },
-                true,
-            ),
-        });
+    expect(result.current.breadcrumbs).toEqual([
+      { icon: <div>icon</div>, label: "Posts", href: "/posts" },
+      { label: "Create" },
+    ]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([
-            { icon: <div>icon</div>, label: "Posts", href: "/posts" },
-            { label: "Create" },
-        ]);
+  it("if resources has nested resources, `parentName` should come in breadcrumbs", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [
+          {
+            name: "cms",
+          },
+          {
+            meta: { parent: "cms", icon: DummyIcon },
+            name: "posts",
+            list: DummyResourcePage,
+            create: DummyResourcePage,
+          },
+        ],
+        routerProvider: mockRouterProvider({
+          action: "create",
+          resource: {
+            name: "posts",
+            meta: { parent: "cms", icon: DummyIcon },
+            list: DummyResourcePage,
+            create: DummyResourcePage,
+          },
+        }),
+      }),
     });
 
-    it("if resources has nested resources, `parentName` should come in breadcrumbs", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper(
-                {
-                    resources: [
-                        {
-                            name: "cms",
-                        },
-                        {
-                            parentName: "cms",
-                            name: "posts",
-                            route: "cms/posts",
-                            icon: DummyIcon,
-                            list: DummyResourcePage,
-                            create: DummyResourcePage,
-                        },
-                    ],
-                    routerInitialEntries: ["/posts/create"],
-                },
-                true,
-            ),
-        });
+    expect(result.current.breadcrumbs).toEqual([
+      { label: "Cms", href: undefined, icon: undefined },
+      { icon: <div>icon</div>, label: "Posts", href: "/posts" },
+      { label: "Create" },
+    ]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([
-            { label: "Cms" },
-            { icon: <div>icon</div>, label: "Posts", href: "/cms/posts" },
-            { label: "Create" },
-        ]);
+  it("should return `[]` if resource not found", async () => {
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [],
+        routerProvider: mockRouterProvider(),
+      }),
     });
 
-    it("if resources has nested resources with custom `route`, `parentName` should come in breadcrumbs", async () => {
-        const { result } = renderHook(() => useBreadcrumb(), {
-            wrapper: renderWrapper(
-                {
-                    resources: [
-                        {
-                            name: "cms",
-                        },
-                        {
-                            parentName: "cms",
-                            name: "posts",
-                            route: "custom-route",
-                            icon: DummyIcon,
-                            list: DummyResourcePage,
-                            create: DummyResourcePage,
-                        },
-                    ],
-                    routerInitialEntries: ["/posts/create"],
-                },
-                true,
-            ),
-        });
+    expect(result.current.breadcrumbs).toEqual([]);
+  });
 
-        expect(result.current.breadcrumbs).toEqual([
-            { label: "Cms" },
-            { icon: <div>icon</div>, label: "Posts", href: "/custom-route" },
-            { label: "Create" },
-        ]);
+  it("should work with i18nProvider", async () => {
+    jest.spyOn(console, "warn");
+
+    const { result } = renderHook(() => useBreadcrumb(), {
+      wrapper: renderWrapper({
+        resources: [{ name: "posts" }],
+        routerProvider: mockRouterProvider({
+          action: "show",
+          resource: { name: "posts" },
+        }),
+        i18nProvider: {
+          translate: (key: string) => key,
+          changeLocale: () => Promise.resolve(),
+          getLocale: () => "en",
+        },
+      }),
     });
+
+    expect(console.warn).toBeCalledWith(
+      `[useBreadcrumb]: Breadcrumb missing translate key for the "show" action. Please add "actions.show" key to your translation file.\nFor more information, see https://refine.dev/docs/api-reference/core/hooks/useBreadcrumb/#i18n-support`,
+    );
+
+    expect(result.current.breadcrumbs).toEqual([
+      { label: "posts.posts", href: undefined, icon: undefined },
+      { label: "buttons.show" },
+    ]);
+  });
 });

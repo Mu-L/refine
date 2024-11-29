@@ -1,184 +1,196 @@
 import React from "react";
-import { RefineCrudCreateProps } from "@pankod/refine-ui-types";
 import {
-    ResourceRouterParams,
-    useNavigation,
-    useResourceWithRoute,
-    userFriendlyResourceName,
-    useRouterContext,
-    useTranslate,
-} from "@pankod/refine-core";
-import {
-    Box,
-    BoxProps,
-    Heading,
-    HStack,
-    IconButton,
-    Spinner,
-    StackProps,
-} from "@chakra-ui/react";
-import { IconArrowLeft } from "@tabler/icons";
+  useNavigation,
+  useTranslate,
+  useUserFriendlyName,
+  useRefineContext,
+  useRouterType,
+  useResource,
+  useBack,
+} from "@refinedev/core";
+import { Box, Heading, HStack, IconButton, Spinner } from "@chakra-ui/react";
 
-import { SaveButton, SaveButtonProps } from "@components/buttons";
-import { Breadcrumb } from "@components/breadcrumb";
+// We use @tabler/icons for icons but you can use any icon library you want.
+import { IconArrowLeft } from "@tabler/icons-react";
 
-export type CreateProps = RefineCrudCreateProps<
-    SaveButtonProps,
-    BoxProps,
-    BoxProps,
-    StackProps,
-    BoxProps,
-    BoxProps
->;
+import { Breadcrumb, SaveButton, type SaveButtonProps } from "@components";
+import type { CreateProps } from "../types";
+import { RefinePageHeaderClassNames } from "@refinedev/ui-types";
 
 export const Create: React.FC<CreateProps> = (props) => {
-    const {
-        children,
-        saveButtonProps,
-        isLoading,
-        resource: resourceFromProps,
-        footerButtons: footerButtonsFromProps,
-        footerButtonProps,
-        headerButtons: headerButtonsFromProps,
-        headerButtonProps,
-        wrapperProps,
-        contentProps,
-        headerProps,
-        goBack: goBackFromProps,
-        breadcrumb = <Breadcrumb />,
-        title,
-    } = props;
-    const translate = useTranslate();
+  const {
+    children,
+    saveButtonProps: saveButtonPropsFromProps,
+    isLoading,
+    resource: resourceFromProps,
+    footerButtons: footerButtonsFromProps,
+    footerButtonProps,
+    headerButtons: headerButtonsFromProps,
+    headerButtonProps,
+    wrapperProps,
+    contentProps,
+    headerProps,
+    goBack: goBackFromProps,
+    breadcrumb: breadcrumbFromProps,
+    title,
+  } = props;
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { goBack } = useNavigation();
+  const routerType = useRouterType();
+  const back = useBack();
+  const { goBack } = useNavigation();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const { useParams } = useRouterContext();
+  const { resource, action, identifier } = useResource(resourceFromProps);
 
-    const { resource: routeResourceName, action: routeFromAction } =
-        useParams<ResourceRouterParams>();
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const resourceWithRoute = useResourceWithRoute();
+  const saveButtonProps: SaveButtonProps = {
+    ...(isLoading ? { disabled: true } : {}),
+    ...saveButtonPropsFromProps,
+  };
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const defaultFooterButtons = <SaveButton {...saveButtonProps} />;
 
-    const defaultFooterButtons = (
-        <SaveButton
-            {...(isLoading ? { disabled: true } : {})}
-            {...saveButtonProps}
-        />
+  const buttonBack =
+    goBackFromProps === (false || null) ? null : (
+      <IconButton
+        aria-label="back"
+        variant="ghost"
+        size="sm"
+        onClick={
+          action !== "list" || typeof action !== "undefined"
+            ? routerType === "legacy"
+              ? goBack
+              : back
+            : undefined
+        }
+      >
+        {typeof goBackFromProps !== "undefined" ? (
+          goBackFromProps
+        ) : (
+          <IconArrowLeft />
+        )}
+      </IconButton>
     );
 
-    const buttonBack =
-        goBackFromProps === (false || null) ? null : (
-            <IconButton
-                aria-label="back"
-                variant="ghost"
-                size="sm"
-                onClick={routeFromAction ? goBack : undefined}
-            >
-                {typeof goBackFromProps !== "undefined" ? (
-                    goBackFromProps
-                ) : (
-                    <IconArrowLeft />
-                )}
-            </IconButton>
-        );
+  const headerButtons = headerButtonsFromProps
+    ? typeof headerButtonsFromProps === "function"
+      ? headerButtonsFromProps({
+          defaultButtons: null,
+        })
+      : headerButtonsFromProps
+    : null;
 
-    const headerButtons = headerButtonsFromProps
-        ? typeof headerButtonsFromProps === "function"
-            ? headerButtonsFromProps({
-                  defaultButtons: null,
-              })
-            : headerButtonsFromProps
-        : null;
+  const footerButtons = footerButtonsFromProps
+    ? typeof footerButtonsFromProps === "function"
+      ? footerButtonsFromProps({
+          defaultButtons: defaultFooterButtons,
+          saveButtonProps,
+        })
+      : footerButtonsFromProps
+    : defaultFooterButtons;
 
-    const footerButtons = footerButtonsFromProps
-        ? typeof footerButtonsFromProps === "function"
-            ? footerButtonsFromProps({ defaultButtons: defaultFooterButtons })
-            : footerButtonsFromProps
-        : defaultFooterButtons;
+  const renderTitle = () => {
+    if (title === false) return null;
 
-    const renderTitle = () => {
-        if (title) {
-            if (typeof title === "string" || typeof title === "number") {
-                return (
-                    <Heading as="h3" size="lg">
-                        {title}
-                    </Heading>
-                );
-            }
-
-            return title;
-        }
-
+    if (title) {
+      if (typeof title === "string" || typeof title === "number") {
         return (
-            <Heading as="h3" size="lg">
-                {translate(
-                    `${resource.name}.titles.create`,
-                    `Create ${userFriendlyResourceName(
-                        resource.label ?? resource.name,
-                        "singular",
-                    )}`,
-                )}
-            </Heading>
+          <Heading
+            as="h3"
+            size="lg"
+            className={RefinePageHeaderClassNames.Title}
+          >
+            {title}
+          </Heading>
         );
-    };
+      }
+
+      return title;
+    }
 
     return (
-        <Box
-            position="relative"
-            bg="chakra-body-bg"
-            borderRadius="md"
-            px="4"
-            py="3"
-            {...wrapperProps}
-        >
-            {isLoading && (
-                <Spinner
-                    position="absolute"
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                />
-            )}
-            <Box
-                mb="3"
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                flexWrap={{ base: "wrap", md: "nowrap" }}
-                gap="3"
-                {...headerProps}
-            >
-                <Box minW={200}>
-                    {breadcrumb}
-                    <HStack>
-                        {buttonBack}
-                        {renderTitle()}
-                    </HStack>
-                </Box>
-                <Box
-                    display="flex"
-                    flexWrap="wrap"
-                    justifyContent={{ base: "flex-start", md: "flex-end" }}
-                    gap="2"
-                    {...headerButtonProps}
-                >
-                    {headerButtons}
-                </Box>
-            </Box>
-            <Box opacity={isLoading ? 0.5 : undefined} {...contentProps}>
-                {children}
-            </Box>
-            <Box
-                display="flex"
-                justifyContent="flex-end"
-                gap="2"
-                mt="8"
-                {...footerButtonProps}
-            >
-                {footerButtons}
-            </Box>
-        </Box>
+      <Heading as="h3" size="lg" className={RefinePageHeaderClassNames.Title}>
+        {translate(
+          `${identifier}.titles.create`,
+          `Create ${getUserFriendlyName(
+            resource?.meta?.label ??
+              resource?.options?.label ??
+              resource?.label ??
+              identifier,
+            "singular",
+          )}`,
+        )}
+      </Heading>
     );
+  };
+
+  return (
+    <Box
+      position="relative"
+      bg="chakra-body-bg"
+      borderRadius="md"
+      px="4"
+      py="3"
+      {...wrapperProps}
+    >
+      {isLoading && (
+        <Spinner
+          position="absolute"
+          top="50%"
+          left="50%"
+          transform="translate(-50%, -50%)"
+        />
+      )}
+      <Box
+        mb="3"
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap={{ base: "wrap", md: "nowrap" }}
+        gap="3"
+        {...headerProps}
+      >
+        <Box minW={200}>
+          {typeof breadcrumb !== "undefined" ? (
+            <>{breadcrumb}</>
+          ) : (
+            <Breadcrumb />
+          )}
+          <HStack>
+            {buttonBack}
+            {renderTitle()}
+          </HStack>
+        </Box>
+        <Box
+          display="flex"
+          flexWrap="wrap"
+          justifyContent={{ base: "flex-start", md: "flex-end" }}
+          gap="2"
+          {...headerButtonProps}
+        >
+          {headerButtons}
+        </Box>
+      </Box>
+      <Box opacity={isLoading ? 0.5 : undefined} {...contentProps}>
+        {children}
+      </Box>
+      <Box
+        display="flex"
+        justifyContent="flex-end"
+        gap="2"
+        mt="8"
+        {...footerButtonProps}
+      >
+        {footerButtons}
+      </Box>
+    </Box>
+  );
 };

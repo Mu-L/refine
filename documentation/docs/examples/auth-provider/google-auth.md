@@ -1,14 +1,17 @@
 ---
 id: google-auth
 title: Google Auth
-example-tags: [antd,auth-provider,google-sign-in]
+example-tags: [auth-provider]
 ---
 
-You can use Google Login to control access and provide identity for your app. This example will guide you through how to connect Google Login into your project using **refine**.
+You can use Google Login to control access and provide identity for your app. This example will guide you through how to connect Google Login into your project using Refine.
 
-[View Source](https://github.com/refinedev/refine/tree/master/examples/authProvider/googleLogin)
+:::note
 
-<iframe loading="lazy" src="https://stackblitz.com/github/refinedev/refine/tree/master/examples/authProvider/googleLogin?embed=1&view=preview&theme=dark&preset=node&ctl=1"
-    style={{width: "100%", height:"80vh", border: "0px", borderRadius: "8px", overflow:"hidden"}}
-    title="refine-google-login-example"
-></iframe>
+If you are developing your own OAuth application, it's important to add the URLs of both your deployed application and your local development to the list of allowed origins in the OAuth app settings. Failure to do so can cause the app to fail.
+
+For more detailed guidance, you may find this helpful [video tutorial](https://www.youtube.com/watch?v=HtJKUQXmtok).
+
+:::
+
+<CodeSandboxExample path="auth-google-login" />

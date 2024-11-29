@@ -1,37 +1,36 @@
-import { IResourceComponentsProps } from "@pankod/refine-core";
+import { Edit, useForm } from "@refinedev/antd";
+import { Checkbox, Form, Input } from "antd";
 
-import { Checkbox, Edit, Form, Input, useForm } from "@pankod/refine-antd";
+import type { ICategory } from "../../interfaces";
 
-import { ICategory } from "interfaces";
+export const CategoryEdit = () => {
+  const { formProps, saveButtonProps } = useForm<ICategory>();
 
-export const CategoryEdit: React.FC<IResourceComponentsProps> = () => {
-    const { formProps, saveButtonProps } = useForm<ICategory>();
-
-    return (
-        <Edit saveButtonProps={saveButtonProps}>
-            <Form
-                {...formProps}
-                layout="vertical"
-                initialValues={{
-                    isActive: true,
-                    ...formProps.initialValues,
-                }}
-            >
-                <Form.Item
-                    label="Title"
-                    name="title"
-                    rules={[
-                        {
-                            required: true,
-                        },
-                    ]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item label="Active" name="active" valuePropName="checked">
-                    <Checkbox>Active</Checkbox>
-                </Form.Item>
-            </Form>
-        </Edit>
-    );
+  return (
+    <Edit saveButtonProps={saveButtonProps}>
+      <Form
+        {...formProps}
+        layout="vertical"
+        initialValues={{
+          isActive: true,
+          ...formProps.initialValues,
+        }}
+      >
+        <Form.Item
+          label="Title"
+          name="title"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item label="Active" name="active" valuePropName="checked">
+          <Checkbox>Active</Checkbox>
+        </Form.Item>
+      </Form>
+    </Edit>
+  );
 };

@@ -1,125 +1,39 @@
 ---
-id: quickstart
 title: Quick Start Guide
+displayed_sidebar: mainSidebar
 ---
 
-The fastest way to get started with **refine** is using the [superplate](https://github.com/pankod/superplate) project starter tool.
-Run the following command to create a new **refine** project configured with  [Ant Design System](https://ant.design/) as the default UI framework:
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import { Playground } from "@site/src/components/playground";
 
-```
-npx superplate-cli --preset refine-antd my-project
-```
+**Refine** works on any environment that can run **React** (incl. _Vite, Next.js, Remix, and CRA(Legacy)_ etc.)
 
-Once the setup is complete, navigate to the project folder and start your project with:
+Although you could take the time to manually set up your environment and install the **Refine** packages afterwards, the optimal way to get started with **Refine** is using the [Browser-based Scaffolder](https://refine.dev/?playground=true) and **CLI-based Scaffolder**.
 
-```
-npm run dev
-```
+## Using CLI
 
-Your **refine** application will be accessible at [http://localhost:3000](http://localhost:3000):
-![Welcome on board](https://github.com/refinedev/refine/blob/master/documentation/static/img/welcome-on-board.png?raw=true)
-Let's consume a public `fake REST API` and add two resources (*posts*, *categories*) to our project. Replace the contents of `src/App.tsx` with the following code:
+Use `create-refine-app` to quickly bootstrap a new **Refine** project with lots of options to fit your needs.
 
-```tsx title="src/App.tsx"
-
-import { Refine, useMany } from "@pankod/refine-core";
-import {
-    useTable,
-    List,
-    Table,
-    DateField,
-    Layout,
-    ReadyPage,
-    notificationProvider,
-    ErrorComponent,
-} from "@pankod/refine-antd";
-import routerProvider from "@pankod/refine-react-router-v6";
-import dataProvider from "@pankod/refine-simple-rest";
-
-import "@pankod/refine-antd/dist/styles.min.css";
-
-const App: React.FC = () => {
-    return (
-        <Refine
-            routerProvider={routerProvider}
-            dataProvider={dataProvider("https://api.fake-rest.refine.dev")}
-            resources={[{ name: "posts", list: PostList }]}
-            Layout={Layout}
-            ReadyPage={ReadyPage}
-            notificationProvider={notificationProvider}
-            catchAll={<ErrorComponent />}
-        />
-    );
-};
-
-export const PostList: React.FC = () => {
-    const { tableProps } = useTable<IPost>();
-
-    const categoryIds =
-        tableProps?.dataSource?.map((item) => item.category.id) ?? [];
-
-    const { data, isLoading } = useMany<ICategory>({
-        resource: "categories",
-        ids: categoryIds,
-        queryOptions: {
-            enabled: categoryIds.length > 0,
-        },
-    });
-
-    return (
-        <List>
-            <Table<IPost> {...tableProps} rowKey="id">
-                <Table.Column dataIndex="title" title="title" />
-                <Table.Column
-                    dataIndex={["category", "id"]}
-                    title="category"
-                    render={(value: number) => {
-                        if (isLoading) {
-                            return "loading...";
-                        }
-
-                        return data?.data.find(
-                            (item: ICategory) => item.id === value,
-                        )?.title;
-                    }}
-                />
-                <Table.Column
-                    dataIndex="createdAt"
-                    title="createdAt"
-                    render={(value) => <DateField format="LLL" value={value} />}
-                />
-            </Table>
-        </List>
-    );
-};
-
-export default App;
-
-interface IPost {
-  title: string;
-  createdAt: string;
-  category: { id: number };
-}
-
-interface ICategory {
-  id: number;
-  title: string;
-}
-
+```sh
+npm create refine-app@latest
 ```
 
-Now, you should see the output as a table populated with `post` & `category` data:
-![First example result](https://github.com/refinedev/refine/blob/master/documentation/static/img/first-example-result.png?raw=true)
+<figure>
+   <img className="w-full rounded-lg border border-solid border-gray-200 dark:border-gray-700" src="https://refine.ams3.cdn.digitaloceanspaces.com/website/static/assets/refine-vite-mui-rest-auth-screenshot.webp" alt="Example result" />
+    <figcaption className="text-center">A Refine app created with CLI using Vite + Material UI + REST API + Custom Auth Provider</figcaption>
+</figure>
+
+## Using Browser
+
+Refine's browser-based scaffolder has the same set of options as the CLI-based scaffolder. It is a great way to set up a new project and have a preview of how it looks before you download it.
+
+<Playground />
 
 ## Next Steps
 
-👉 Jump to [Refine - Ant Design Tutorial](https://refine.dev/docs/ui-frameworks/antd/tutorial/) to continue your work and turn the example into a full-blown CRUD application.
+👉 Jump to [Tutorials](/tutorial) and continue your work to turn your example project into a full-blown CRUD application! 🚀
 
-👉 Check out the [Refine - Tailwind Tutorial](https://refine.dev/docs/ui-frameworks/antd/tutorial/) to learn how to use **refine** in a pure *headless* way.
+👉 See [real-life examples](/templates) built using **Refine**
 
-👉 Read more on [Advanced Tutorials
-](https://refine.dev/docs/advanced-tutorials/) for different usage scenarios.
-
-👉 See the real-life [Finefoods Demo](https://refine.dev/demo/) project.
-
-👉 Play with interactive [Examples](https://refine.dev/docs/examples/)
+👉 Check out the [General Concepts](/docs/guides-concepts/general-concepts) and [Data Fetching](/docs/guides-concepts/data-fetching) guides to start learning Refine.

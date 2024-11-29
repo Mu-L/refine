@@ -1,110 +1,66 @@
 import React from "react";
-import { Button, ButtonProps } from "antd";
+import { Button } from "antd";
 import { PlusSquareOutlined } from "@ant-design/icons";
+import { useCloneButton } from "@refinedev/core";
 import {
-    useCan,
-    useNavigation,
-    useTranslate,
-    useResource,
-    useRouterContext,
-} from "@pankod/refine-core";
-import {
-    RefineCloneButtonProps,
-    RefineButtonTestIds,
-} from "@pankod/refine-ui-types";
+  RefineButtonTestIds,
+  RefineButtonClassNames,
+} from "@refinedev/ui-types";
 
-export type CloneButtonProps = RefineCloneButtonProps<
-    ButtonProps,
-    {
-        /**
-         * Resource name for API data interactions
-         * @deprecated `resourceName` deprecated. Use `resourceNameOrRouteName` instead [Github Issue #1618](https://github.com/refinedev/refine/issues/1618)
-         */
-        resourceName?: string;
-    }
->;
+import type { CloneButtonProps } from "../types";
 
 /**
  * `<CloneButton>` uses Ant Design's {@link https://ant.design/components/button/ `<Button> component`}.
- * It uses the {@link https://refine.dev/docs/core/hooks/navigation/useNavigation#clone `clone`} method from {@link https://refine.dev/docs/core/hooks/navigation/useNavigation useNavigation} under the hood.
+ * It uses the {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation#clone `clone`} method from {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation useNavigation} under the hood.
  * It can be useful when redirecting the app to the create page with the record id route of resource.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/antd/components/buttons/clone-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/antd/components/buttons/clone-button} for more details.
  */
 export const CloneButton: React.FC<CloneButtonProps> = ({
-    resourceName: propResourceName,
-    resourceNameOrRouteName: propResourceNameOrRouteName,
-    recordItemId,
-    hideText = false,
-    accessControl,
-    ignoreAccessControlProvider = false,
-    children,
-    onClick,
-    ...rest
+  resourceNameOrRouteName: propResourceNameOrRouteName,
+  resource: resourceNameFromProps,
+  recordItemId,
+  hideText = false,
+  accessControl,
+  meta,
+  children,
+  onClick,
+  ...rest
 }) => {
-    const accessControlEnabled =
-        accessControl?.enabled ?? !ignoreAccessControlProvider;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const { cloneUrl: generateCloneUrl } = useNavigation();
-    const { Link } = useRouterContext();
+  const { to, LinkComponent, label, disabled, hidden, title } = useCloneButton({
+    id: recordItemId,
+    resource: resourceNameFromProps ?? propResourceNameOrRouteName,
+    accessControl,
+    meta,
+  });
 
-    const translate = useTranslate();
+  if (hidden) return null;
 
-    const { id, resourceName, resource } = useResource({
-        resourceNameOrRouteName: propResourceNameOrRouteName,
-        recordItemId,
-        resourceName: propResourceName,
-    });
-
-    const { data } = useCan({
-        resource: resourceName,
-        action: "create",
-        params: { id, resource },
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-    });
-
-    const createButtonDisabledTitle = () => {
-        if (data?.can) return "";
-        else if (data?.reason) return data.reason;
-        else
-            return translate(
-                "buttons.notAccessTitle",
-                "You don't have permission to access",
-            );
-    };
-
-    const cloneUrl = generateCloneUrl(propResourceName ?? resource.route!, id!);
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Link
-            to={cloneUrl}
-            replace={false}
-            onClick={(e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-                if (data?.can === false) {
-                    e.preventDefault();
-                    return;
-                }
-                if (onClick) {
-                    e.preventDefault();
-                    onClick(e);
-                }
-            }}
-        >
-            <Button
-                icon={<PlusSquareOutlined />}
-                disabled={data?.can === false}
-                title={createButtonDisabledTitle()}
-                data-testid={RefineButtonTestIds.CloneButton}
-                {...rest}
-            >
-                {!hideText && (children ?? translate("buttons.clone", "Clone"))}
-            </Button>
-        </Link>
-    );
+  return (
+    <LinkComponent
+      to={to}
+      replace={false}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
+        if (onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+    >
+      <Button
+        icon={<PlusSquareOutlined />}
+        disabled={disabled}
+        title={title}
+        data-testid={RefineButtonTestIds.CloneButton}
+        className={RefineButtonClassNames.CloneButton}
+        {...rest}
+      >
+        {!hideText && (children ?? label)}
+      </Button>
+    </LinkComponent>
+  );
 };

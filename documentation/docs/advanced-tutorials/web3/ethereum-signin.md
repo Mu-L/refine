@@ -3,41 +3,42 @@ id: ethereum-signin
 title: Sign in with Ethereum Web3 Wallet
 ---
 
-import login from '@site/static/img/guides-and-concepts/web3/login.gif';
-import dashboard from '@site/static/img/guides-and-concepts/web3/dashboard.png';
-import customize from '@site/static/img/guides-and-concepts/web3/customize.png';
-import overview from '@site/static/img/guides-and-concepts/web3/overview.gif';
-
 ## Introduction
 
-In this guide you will examine what a web3 wallet is, how to sign in your wallet , and how to use the popular wallet [MetaMask](https://metamask.io/). We will learn to login your Metamask wallet using **refine** and [Web3](https://web3js.readthedocs.io/en/v1.5.2/).
+In this guide, you will examine what a web3 wallet is, how to sign in to your wallet, and how to use the popular wallet [MetaMask](https://metamask.io/). We will learn to log in to your Metamask wallet using **Refine** and [Web3](https://web3js.readthedocs.io/en/v1.5.2/).
 
-A web3 wallet is software that allows you to send, receive, or store cryptocurrency securely without the need for a 3rd party. Web3 wallet is your key to access your cryptocurrency.  If you want to send cryptocurrency or receive it you will need a wallet.
+A web3 wallet is a software that allows you to send, receive, or store cryptocurrency securely without the need for a 3rd party. Web3 wallet is your key to accessing your cryptocurrency. If you want to send cryptocurrency or receive it you will need a wallet.
 
-We will show you how to login Metamask wallet with **refine**.
+We will show you how to log in to your Metamask wallet with **Refine**.
 
-## Installation 
-We will need [web3](https://github.com/ChainSafe/web3.js) and [web3-modal](https://github.com/web3modal/web3modal) packages in our project. Let's start by downloading these packages
+## Installation
 
-```bash
-npm install web3
-npm install --save web3modal
-```
+We will need [web3](https://github.com/ChainSafe/web3.js) and [web3-modal](https://github.com/web3modal/web3modal) packages in our project. Let's start by downloading these packages.
+
+<InstallPackagesCommand args="web3 web3modal"/>
 
 :::caution
-To make this example more visual, we used the [`@pankod/refine-antd`](https://github.com/refinedev/refine/tree/master/packages/refine-antd) package. If you are using Refine headless, you need to provide the components, hooks or helpers imported from the [`@pankod/refine-antd`](https://github.com/refinedev/refine/tree/master/packages/refine-antd) package.
+
+To make this example more visual, we used the [`@refinedev/antd`](https://github.com/refinedev/refine/tree/master/packages/antd) package. If you are using Refine headless, you need to provide the components, hooks or helpers imported from the [`@refinedev/antd`](https://github.com/refinedev/refine/tree/master/packages/antd) package.
+
 :::
 
-## Configure Refine Authprovider
+## Configure Refine Auth provider
 
 First, we need to define a web3modal and create a provider. We can get information about the wallet by connecting this provider that we have created to web3.
 
 :::note
-In this example we will show the login with Metamask Wallet. If you want, you can connect other wallets using web3modal's providers.
+
+In this example, we will show the login with Metamask Wallet. If you want, you can connect to other wallets using web3modal's providers.
+
 :::
 
+<details>
+<summary>Show Code</summary>
+<p>
+
 ```tsx title="/src/authprovider.ts"
-import { AuthProvider } from "@pankod/refine-core";
+import { AuthProvider } from "@refinedev/core";
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 
@@ -55,19 +56,23 @@ let provider: any | null = null;
 
 export const authProvider: AuthProvider = {
   login: async () => {
-      if (window.ethereum) {
-        provider = await web3Modal.connect();
-        const web3 = new Web3(provider);
-        const accounts = await web3.eth.getAccounts();
-        localStorage.setItem(TOKEN_KEY, accounts[0]);
-        return Promise.resolve();
-      } else {
-        return Promise.reject(
-          new Error(
-            "Not set ethereum wallet or invalid. You need to install Metamask"
-          )
-        );
-      }
+    if (window.ethereum) {
+      provider = await web3Modal.connect();
+      const web3 = new Web3(provider);
+      const accounts = await web3.eth.getAccounts();
+      localStorage.setItem(TOKEN_KEY, accounts[0]);
+      return {
+        success: true,
+        redirectTo: "/",
+      };
+    } else {
+      return {
+        success: false,
+        error: new Error(
+          "Not set ethereum wallet or invalid. You need to install Metamask",
+        ),
+      };
+    }
   },
   logout: async () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -77,37 +82,53 @@ export const authProvider: AuthProvider = {
       provider = null;
       await web3Modal.clearCachedProvider();
     }
-    return Promise.resolve();
+    return {
+      success: true,
+      redirectTo: "/login",
+    };
   },
-  checkError: () => Promise.resolve(),
-  checkAuth: () => {
+  onError: async (error) => {
+    console.error(error);
+    return { error };
+  },
+  check: async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
-      return Promise.resolve();
+      return {
+        authenticated: true,
+      };
     }
 
-    return Promise.reject();
+    return {
+      authenticated: false,
+      redirectTo: "/login",
+      logout: true,
+    };
   },
-  getPermissions: () => Promise.resolve(),
-  getUserIdentity: async () => {
+  getPermissions: async () => null,
+  getIdentity: async () => {
     const address = localStorage.getItem(TOKEN_KEY);
     if (!address) {
-      return Promise.reject();
+      return null;
     }
 
     const balance = await getBalance(address);
 
-    return Promise.resolve({
+    return {
       address,
       balance,
-    });
+    };
   },
 };
 ```
-We use web3's `getBalance()` function to find out the ethereum amount of the account logged in
+
+</p>
+</details>
+
+We use web3's `getBalance()` function to find out the ethereum amount of the account logged in.
 
 ```ts title="src/utility.ts"
-const web3 = new Web3(window.ethereum)
+const web3 = new Web3(window.ethereum);
 
 export const getBalance = async (account: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -123,80 +144,70 @@ export const getBalance = async (account: string): Promise<string> => {
 ```
 
 ### Override Login page​
-We need to override the refine login page. In this way, we will redirect it to the Metamask Wallet login page. We create a login.tsx file in the /pages folder.
+
+We need to override the Refine login page. In this way, we will redirect it to the Metamask Wallet login page. We create a `login.tsx` file in the /pages folder.
+
+<details>
+<summary>Show Code</summary>
+<p>
 
 ```tsx title="/src/page/login.tsx"
-import { useLogin } from "@pankod/refine-core";
-import { AntdLayout, Button, Icon, Row, Col } from "@pankod/refine-antd";
+import { Layout, Button, Space, Typography } from "antd";
+import { ThemedTitleV2 } from "@refinedev/antd";
+// highlight-next-line
+import { useLogin } from "@refinedev/core";
 
 export const Login: React.FC = () => {
+  // highlight-next-line
   const { mutate: login, isLoading } = useLogin();
 
   return (
-    <AntdLayout
+    <Layout
       style={{
-        background: `radial-gradient(50% 50% at 50% 50%, #63386A 0%, #310438 100%)`,
-        backgroundSize: "cover",
+        height: "100vh",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
-      <Row
-        justify="center"
-        align="middle"
-        style={{
-          height: "100vh",
-        }}
-      >
-        <Col xs={22}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "28px",
-            }}
-          >
-            <img src="./refine.svg" alt="Refine" />
-          </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <Button
-              type="primary"
-              size="large"
-              icon={
-                <Icon
-                  component={() => (
-                    <img alt={"ethereum.png"} src="./ethereum.png" />
-                  )}
-                />
-              }
-              loading={isLoading}
-              onClick={() => login({})}
-            >
-              SIGN-IN WITH ETHEREUM
-            </Button>
-          </div>
-        </Col>
-      </Row>
-    </AntdLayout>
+      <Space direction="vertical" align="center" size="large">
+        <ThemedTitleV2
+          collapsed={false}
+          wrapperStyles={{
+            fontSize: "22px",
+          }}
+        />
+        <Button
+          type="primary"
+          size="middle"
+          loading={isLoading}
+          onClick={() => login({})}
+        >
+          Sign in with Ethereum
+        </Button>
+        <Typography.Text type="secondary">Powered by Auth0</Typography.Text>
+      </Space>
+    </Layout>
   );
 };
 ```
 
-<div class="img-container">
-    <div class="window">
-        <div class="control red"></div>
-        <div class="control orange"></div>
-        <div class="control green"></div>
-    </div>
-    <img src={login} alt="ethereum-login" />
-</div>
-<br/>
+</p>
+</details>
+
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/guides-and-concepts/web3/login-min.gif" alt="ethereum-login" className="border border-gray-200 rounded" />
 
 ## Create Dashboard
-After connecting with our account, we can now retrieve account information. We will display this information on the dashboard of the **refine**.
 
-```tsx title="src/pages/dashboard"
+After connecting with our account, we can now retrieve account information. We will display this information on the dashboard of the **Refine**.
+
+<details>
+<summary>Show Code</summary>
+<p>
+
+```tsx title="src/pages/dashboard.tsx"
 import React from "react";
-import { useGetIdentity } from "@pankod/refine-core";
+import { useGetIdentity } from "@refinedev/core";
+import { useModal } from "@refinedev/antd";
 import {
   Row,
   Col,
@@ -205,15 +216,17 @@ import {
   Space,
   Button,
   Modal,
-  useModal,
   Form,
   Input,
-} from "@pankod/refine-antd";
+} from "antd";
 
 const { Text } = Typography;
 
 export const DashboardPage: React.FC = () => {
-  const { data, isLoading } = useGetIdentity<{address: string, balance: string}>();
+  const { data, isLoading } = useGetIdentity<{
+    address: string;
+    balance: string;
+  }>();
 
   return (
     <Row gutter={24}>
@@ -227,42 +240,37 @@ export const DashboardPage: React.FC = () => {
             <Text>{isLoading ? "loading" : data?.address}</Text>
           </Space>
         </Card>
-        </Col>
-        <Col span={8}>
-          <Card
-            title="Account Balance"
-            style={{ height: "150px", borderRadius: "15px" }}
-            headStyle={{ textAlign: "center" }}
-          >
-            <Text>{`${isLoading ? "loading" : data?.balance} Ether`}</Text>
-          </Card>
-        </Col>
-      </Row>
+      </Col>
+      <Col span={8}>
+        <Card
+          title="Account Balance"
+          style={{ height: "150px", borderRadius: "15px" }}
+          headStyle={{ textAlign: "center" }}
+        >
+          <Text>{`${isLoading ? "loading" : data?.balance} Ether`}</Text>
+        </Card>
+      </Col>
+    </Row>
   );
 };
 ```
 
-<div class="img-container">
-    <div class="window">
-        <div class="control red"></div>
-        <div class="control orange"></div>
-        <div class="control green"></div>
-    </div>
-    <img src={dashboard} alt="refine-dashboard" />
-</div>
-<br/>
+</p>
+</details>
 
-Now lets customize **refine** dashboard. Send your test ethereum via **refine** dashboard and Metamask.
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/guides-and-concepts/web3/dashboard.jpg" alt="refine-dashboard" className="border border-gray-200 rounded" />
+
+Now lets customize **Refine** dashboard. Send your test ethereum via **Refine** dashboard and Metamask.
 
 ## Send Test Ethereum with Refine Dashboard
 
-Here we use the `sendTransaction` function to send ethereum with your browser enabled web3 wallet.
+Here we use the `sendTransaction` function to send ethereum with your browser-enabled web3 wallet.
 
 ```tsx title="src/utility.ts"
 export const sendEthereum = async (
   sender: string,
   receiver: string,
-  amount: string
+  amount: string,
 ) => {
   try {
     const params = {
@@ -279,9 +287,14 @@ export const sendEthereum = async (
 };
 ```
 
-```tsx title"src/pages/dashboard.tsx"
+<details>
+<summary>Show Code</summary>
+<p>
+
+```tsx title="src/pages/dashboard.tsx"
 import React, { useState } from "react";
-import { useGetIdentity } from "@pankod/refine-core";
+import { useGetIdentity } from "@refinedev/core";
+import { useModal } from "@refinedev/antd";
 import {
   Row,
   Col,
@@ -290,20 +303,22 @@ import {
   Space,
   Button,
   Modal,
-  useModal,
   Form,
   Input,
   notification,
-} from "@pankod/refine-antd";
+} from "antd";
 
 import { sendEthereum } from "../utility";
 
 const { Text } = Typography;
 
 export const DashboardPage: React.FC = () => {
-  const { data, isLoading } = useGetIdentity<{address: string, balance: string}>();
+  const { data, isLoading } = useGetIdentity<{
+    address: string;
+    balance: string;
+  }>();
   const { modalProps, show, close } = useModal();
-  const [form] = Form.useForm();  
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
   const handleModal = async (values: any) => {
@@ -311,7 +326,7 @@ export const DashboardPage: React.FC = () => {
     const tx: any | undefined = await sendEthereum(
       data?.address!!,
       values.receiver,
-      values.amount
+      values.amount,
     );
     const status = tx ? tx.status : undefined;
     setLoading(false);
@@ -320,7 +335,7 @@ export const DashboardPage: React.FC = () => {
       close();
       notification["success"]({
         message: "Transaction Success",
-        description: "Transaction successfull you can check on Etherscan.io",
+        description: "Transaction successful you can check on Etherscan.io",
       });
     } else {
       notification["warning"]({
@@ -380,7 +395,7 @@ export const DashboardPage: React.FC = () => {
         okButtonProps={{ loading: loading }}
       >
         <Form layout="vertical" onFinish={handleModal} form={form}>
-          <Form.Item name="receiver" label="Receiver Public Adress">
+          <Form.Item name="receiver" label="Receiver Public Address">
             <Input />
           </Form.Item>
           <Form.Item name="amount" label="Amaount Ether">
@@ -392,32 +407,16 @@ export const DashboardPage: React.FC = () => {
   );
 };
 ```
-<div class="img-container">
-    <div class="window">
-        <div class="control red"></div>
-        <div class="control orange"></div>
-        <div class="control green"></div>
-    </div>
-    <img src={customize} alt="refine-customize" />
-</div>
-<br/>
 
-We can now request to send ethereum through our **refine** dashboard and also view your account deatils on [Etherscan Ropsten Test Network](https://ropsten.etherscan.io/)
+</p>
+</details>
 
-<div class="img-container">
-    <div class="window">
-        <div class="control red"></div>
-        <div class="control orange"></div>
-        <div class="control green"></div>
-    </div>
-    <img src={overview} alt="refine-overview" />
-</div>
-<br/>
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/guides-and-concepts/web3/customize.jpg" alt="refine-customize" className="border border-gray-200 rounded" />
 
-## Live StackBlitz Example
-<iframe loading="lazy" src="https://stackblitz.com/github/refinedev/refine/tree/master/examples/web3/ethereumLogin?embed=1&view=preview&theme=dark&preset=node&ctl=1"
-     style={{width: "100%", height:"80vh", border: "0px", borderRadius: "8px", overflow:"hidden"}}
-     title="signin-with-ethereum"
-     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
-     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
-></iframe>
+We can now request to send ethereum through our **Refine** dashboard and also view your account details on [Etherscan Ropsten Test Network](https://ropsten.etherscan.io/)
+
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/guides-and-concepts/web3/overview-min.gif" alt="refine-overview" className="border border-gray-200 rounded" />
+
+## Example
+
+<CodeSandboxExample path="with-web3" />

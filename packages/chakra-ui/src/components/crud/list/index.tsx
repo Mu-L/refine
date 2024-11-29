@@ -1,125 +1,136 @@
 import React from "react";
-import { RefineCrudListProps } from "@pankod/refine-ui-types";
 import {
-    ResourceRouterParams,
-    useResourceWithRoute,
-    userFriendlyResourceName,
-    useRouterContext,
-    useTranslate,
-} from "@pankod/refine-core";
-import { Box, Heading, BoxProps } from "@chakra-ui/react";
+  useTranslate,
+  useUserFriendlyName,
+  useRefineContext,
+  useRouterType,
+  useResource,
+} from "@refinedev/core";
 
-import { CreateButton, CreateButtonProps } from "@components/buttons";
-import { Breadcrumb } from "@components/breadcrumb";
+import { Box, Heading } from "@chakra-ui/react";
 
-export type ListProps = RefineCrudListProps<
-    CreateButtonProps,
-    BoxProps,
-    BoxProps,
-    BoxProps,
-    BoxProps
->;
+import { CreateButton, Breadcrumb, type CreateButtonProps } from "@components";
+import type { ListProps } from "../types";
+import { RefinePageHeaderClassNames } from "@refinedev/ui-types";
 
 export const List: React.FC<ListProps> = (props) => {
-    const {
-        canCreate,
-        children,
-        createButtonProps,
-        resource: resourceFromProps,
-        wrapperProps,
-        contentProps,
-        headerProps,
-        headerButtonProps,
-        headerButtons: headerButtonsFromProps,
-        breadcrumb = <Breadcrumb />,
-        title,
-    } = props;
-    const translate = useTranslate();
+  const {
+    canCreate,
+    children,
+    createButtonProps: createButtonPropsFromProps,
+    resource: resourceFromProps,
+    wrapperProps,
+    contentProps,
+    headerProps,
+    headerButtonProps,
+    headerButtons: headerButtonsFromProps,
+    breadcrumb: breadcrumbFromProps,
+    title,
+  } = props;
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { useParams } = useRouterContext();
+  const routerType = useRouterType();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const { resource: routeResourceName } = useParams<ResourceRouterParams>();
+  const { resource, identifier } = useResource(resourceFromProps);
 
-    const resourceWithRoute = useResourceWithRoute();
+  const isCreateButtonVisible =
+    canCreate ??
+    ((resource?.canCreate ?? !!resource?.create) || createButtonPropsFromProps);
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const isCreateButtonVisible =
-        canCreate ?? (resource.canCreate || createButtonProps);
+  const createButtonProps: CreateButtonProps | undefined = isCreateButtonVisible
+    ? {
+        resource: routerType === "legacy" ? resource?.route : identifier,
+        ...createButtonPropsFromProps,
+      }
+    : undefined;
 
-    const defaultHeaderButtons = isCreateButtonVisible ? (
-        <CreateButton
-            resourceNameOrRouteName={resource.route}
-            {...createButtonProps}
-        />
-    ) : null;
+  const defaultHeaderButtons = isCreateButtonVisible ? (
+    <CreateButton {...createButtonProps} />
+  ) : null;
 
-    const headerButtons = headerButtonsFromProps
-        ? typeof headerButtonsFromProps === "function"
-            ? headerButtonsFromProps({
-                  defaultButtons: defaultHeaderButtons,
-              })
-            : headerButtonsFromProps
-        : defaultHeaderButtons;
+  const headerButtons = headerButtonsFromProps
+    ? typeof headerButtonsFromProps === "function"
+      ? headerButtonsFromProps({
+          defaultButtons: defaultHeaderButtons,
+          createButtonProps,
+        })
+      : headerButtonsFromProps
+    : defaultHeaderButtons;
 
-    const renderTitle = () => {
-        if (title) {
-            if (typeof title === "string" || typeof title === "number") {
-                return (
-                    <Heading as="h3" size="lg">
-                        {title}
-                    </Heading>
-                );
-            }
+  const renderTitle = () => {
+    if (title === false) return null;
 
-            return title;
-        }
-
+    if (title) {
+      if (typeof title === "string" || typeof title === "number") {
         return (
-            <Heading as="h3" size="lg">
-                {translate(
-                    `${resource.name}.titles.list`,
-                    userFriendlyResourceName(
-                        resource.label ?? resource.name,
-                        "plural",
-                    ),
-                )}
-            </Heading>
+          <Heading
+            as="h3"
+            size="lg"
+            className={RefinePageHeaderClassNames.Title}
+          >
+            {title}
+          </Heading>
         );
-    };
+      }
+
+      return title;
+    }
 
     return (
-        <Box
-            bg="chakra-body-bg"
-            borderRadius="md"
-            px="4"
-            py="3"
-            {...wrapperProps}
-        >
-            <Box
-                mb="3"
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                flexWrap={{ base: "wrap", md: "nowrap" }}
-                gap="3"
-                {...headerProps}
-            >
-                <Box minW={200}>
-                    {breadcrumb}
-                    {renderTitle()}
-                </Box>
-                <Box
-                    display="flex"
-                    flexWrap="wrap"
-                    justifyContent={{ base: "flex-start", md: "flex-end" }}
-                    gap="2"
-                    {...headerButtonProps}
-                >
-                    {headerButtons}
-                </Box>
-            </Box>
-            <Box {...contentProps}>{children}</Box>
-        </Box>
+      <Heading as="h3" size="lg" className={RefinePageHeaderClassNames.Title}>
+        {translate(
+          `${identifier}.titles.list`,
+          getUserFriendlyName(
+            resource?.meta?.label ??
+              resource?.options?.label ??
+              resource?.label ??
+              identifier,
+            "plural",
+          ),
+        )}
+      </Heading>
     );
+  };
+
+  return (
+    <Box bg="chakra-body-bg" borderRadius="md" px="4" py="3" {...wrapperProps}>
+      <Box
+        mb="3"
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap={{ base: "wrap", md: "nowrap" }}
+        gap="3"
+        {...headerProps}
+      >
+        <Box minW={200}>
+          {typeof breadcrumb !== "undefined" ? (
+            <>{breadcrumb}</> ?? undefined
+          ) : (
+            <Breadcrumb />
+          )}
+          {renderTitle()}
+        </Box>
+        <Box
+          display="flex"
+          flexWrap="wrap"
+          justifyContent={{ base: "flex-start", md: "flex-end" }}
+          gap="2"
+          {...headerButtonProps}
+        >
+          {headerButtons}
+        </Box>
+      </Box>
+      <Box {...contentProps}>{children}</Box>
+    </Box>
+  );
 };

@@ -1,84 +1,74 @@
-import { LiveProvider } from "@pankod/refine-core";
-import { Client } from "graphql-ws";
+import type { LiveProvider } from "@refinedev/core";
 
-import {
-    genereteUseListSubscription,
-    genereteUseManySubscription,
-    genereteUseOneSubscription,
-} from "../utilities";
+import type { Client } from "graphql-ws";
+import { generateSubscription } from "./helpers";
 
-const subscriptions = {
-    useList: genereteUseListSubscription,
-    useOne: genereteUseOneSubscription,
-    useMany: genereteUseManySubscription,
-};
+type SubscriptionAction = "created" | "updated" | "deleted";
 
-export const liveProvider = (client: Client): LiveProvider => {
-    return {
-        subscribe: ({ callback, params }) => {
-            const {
-                resource,
-                metaData,
-                pagination,
-                hasPagination,
-                sort,
-                filters,
-                subscriptionType,
-                id,
-                ids,
-            } = params ?? {};
+export const createLiveProvider = (client: Client): LiveProvider => {
+  const subscribeToResource = (
+    client: Client,
+    callback: Function,
+    params: any,
+    meta: any,
+    action: SubscriptionAction,
+    resource: string,
+    unsubscribes: Function[],
+  ) => {
+    const unsubscribe = generateSubscription(
+      client,
+      { callback, params, meta },
+      action,
+    );
+    unsubscribes.push(unsubscribe);
+  };
 
-            if (!metaData) {
-                throw new Error(
-                    "[useSubscription]: `metaData` is required in `params` for graphql subscriptions",
-                );
-            }
+  return {
+    subscribe({ callback, params, meta }) {
+      const { resource, subscriptionType } = params ?? {};
 
-            if (!subscriptionType) {
-                throw new Error(
-                    "[useSubscription]: `subscriptionType` is required in `params` for graphql subscriptions",
-                );
-            }
+      if (!meta || !subscriptionType || !resource) {
+        throw new Error(
+          "[useSubscription]: `meta`, `subscriptionType` and `resource` are required in `params` for graphql subscriptions",
+        );
+      }
 
-            if (!resource) {
-                throw new Error(
-                    "[useSubscription]: `resource` is required in `params` for graphql subscriptions",
-                );
-            }
+      const unsubscribes: any[] = [];
 
-            const genereteSubscription = subscriptions[subscriptionType];
+      if (params?.subscriptionType === "useList") {
+        ["created", "updated", "deleted"].forEach((action) =>
+          subscribeToResource(
+            client,
+            callback,
+            params,
+            meta,
+            action as SubscriptionAction,
+            resource,
+            unsubscribes,
+          ),
+        );
+      }
 
-            const { query, variables, operation } = genereteSubscription({
-                ids,
-                id,
-                resource,
-                filters,
-                hasPagination,
-                metaData,
-                pagination,
-                sort,
-            });
+      if (params?.subscriptionType === "useOne") {
+        subscribeToResource(
+          client,
+          callback,
+          params,
+          meta,
+          "updated",
+          resource,
+          unsubscribes,
+        );
+      }
 
-            const onNext = (payload: any) => {
-                callback(payload.data[operation]);
-            };
+      const unsubscribe = () => {
+        unsubscribes.forEach((unsubscribe) => unsubscribe());
+      };
 
-            const unsubscribe = client.subscribe(
-                {
-                    query,
-                    variables,
-                },
-                {
-                    next: onNext,
-                    error: () => null,
-                    complete: () => null,
-                },
-            );
-
-            return unsubscribe;
-        },
-        unsubscribe: (unsubscribe) => {
-            unsubscribe();
-        },
-    };
+      return unsubscribe;
+    },
+    unsubscribe(unsubscribe) {
+      unsubscribe();
+    },
+  };
 };

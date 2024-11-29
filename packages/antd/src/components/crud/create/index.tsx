@@ -1,53 +1,22 @@
-import React, { ReactNode } from "react";
+import React from "react";
+import { Card, Space, Spin } from "antd";
 import {
-    Card,
-    Space,
-    PageHeader,
-    PageHeaderProps,
-    Spin,
-    SpaceProps,
-    CardProps,
-} from "antd";
+  useNavigation,
+  useTranslate,
+  useUserFriendlyName,
+  useRefineContext,
+  useRouterType,
+  useResource,
+  useBack,
+} from "@refinedev/core";
+
 import {
-    useNavigation,
-    useResourceWithRoute,
-    useRouterContext,
-    useTranslate,
-    userFriendlyResourceName,
-    ResourceRouterParams,
-    useRefineContext,
-} from "@pankod/refine-core";
-import { RefineCrudCreateProps } from "@pankod/refine-ui-types";
-
-import { Breadcrumb, SaveButton } from "@components";
-import { SaveButtonProps } from "@components/buttons/save";
-
-export type CreateProps = RefineCrudCreateProps<
-    SaveButtonProps,
-    SpaceProps,
-    SpaceProps,
-    React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLDivElement>,
-        HTMLDivElement
-    >,
-    PageHeaderProps,
-    CardProps,
-    {
-        /**
-         * Action buttons node at the top of the view
-         * @default `<SaveButton />`
-         *
-         * @deprecated use `headerButtons` or `footerButtons` instead.
-         */
-        actionButtons?: React.ReactNode;
-        /**
-         * Additional props to be passed to the `PageHeader` component
-         *
-         * @deprecated use `headerProps`, `wrapperProps` and `contentProps` instead.
-         */
-        pageHeaderProps?: PageHeaderProps;
-    }
->;
+  Breadcrumb,
+  SaveButton,
+  PageHeader,
+  type SaveButtonProps,
+} from "@components";
+import type { CreateProps } from "../types";
 
 /**
  * `<Create>` provides us a layout to display the page.
@@ -56,114 +25,119 @@ export type CreateProps = RefineCrudCreateProps<
  * @see {@link https://refine.dev/docs/ui-frameworks/antd/components/basic-views/create} for more details.
  */
 export const Create: React.FC<CreateProps> = ({
-    title,
-    actionButtons,
-    saveButtonProps,
-    children,
-    pageHeaderProps,
-    resource: resourceFromProps,
-    isLoading = false,
-    breadcrumb: breadcrumbFromProps,
-    wrapperProps,
-    headerProps,
-    contentProps,
-    headerButtonProps,
-    headerButtons,
-    footerButtonProps,
-    footerButtons,
-    goBack: goBackFromProps,
+  title,
+  saveButtonProps: saveButtonPropsFromProps,
+  children,
+  resource: resourceFromProps,
+  isLoading = false,
+  breadcrumb: breadcrumbFromProps,
+  wrapperProps,
+  headerProps,
+  contentProps,
+  headerButtonProps,
+  headerButtons,
+  footerButtonProps,
+  footerButtons,
+  goBack: goBackFromProps,
 }) => {
-    const { goBack } = useNavigation();
-    const translate = useTranslate();
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { useParams } = useRouterContext();
+  const routerType = useRouterType();
+  const back = useBack();
+  const { goBack } = useNavigation();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const { resource: routeResourceName, action: routeFromAction } =
-        useParams<ResourceRouterParams>();
-    const resourceWithRoute = useResourceWithRoute();
+  const { resource, action, identifier } = useResource(resourceFromProps);
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const { options } = useRefineContext();
-    const breadcrumb =
-        typeof breadcrumbFromProps === "undefined"
-            ? options?.breadcrumb
-            : breadcrumbFromProps;
+  const saveButtonProps: SaveButtonProps = {
+    ...(isLoading ? { disabled: true } : {}),
+    ...saveButtonPropsFromProps,
+    htmlType: "submit",
+  };
 
-    const defaultFooterButtons = (
-        <>
-            {actionButtons ?? (
-                <SaveButton
-                    {...(isLoading ? { disabled: true } : {})}
-                    {...saveButtonProps}
-                    htmlType="submit"
-                />
-            )}
-        </>
-    );
+  const defaultFooterButtons = (
+    <>
+      <SaveButton {...saveButtonProps} />
+    </>
+  );
 
-    return (
-        <div {...(wrapperProps ?? {})}>
-            <PageHeader
-                ghost={false}
-                backIcon={goBackFromProps}
-                onBack={routeFromAction ? goBack : undefined}
-                title={
-                    title ??
-                    translate(
-                        `${resource.name}.titles.create`,
-                        `Create ${userFriendlyResourceName(
-                            resource.label ?? resource.name,
-                            "singular",
-                        )}`,
-                    )
-                }
-                breadcrumb={
-                    typeof breadcrumb !== "undefined" ? (
-                        <>{breadcrumb}</> ?? undefined
-                    ) : (
-                        <Breadcrumb />
-                    )
-                }
-                extra={
-                    <Space wrap {...(headerButtonProps ?? {})}>
-                        {headerButtons
-                            ? typeof headerButtons === "function"
-                                ? headerButtons({
-                                      defaultButtons: null,
-                                  })
-                                : headerButtons
-                            : null}
-                    </Space>
-                }
-                {...(pageHeaderProps ?? {})}
-                {...(headerProps ?? {})}
-            >
-                <Spin spinning={isLoading}>
-                    <Card
-                        bordered={false}
-                        actions={[
-                            <Space
-                                key="action-buttons"
-                                style={{ float: "right", marginRight: 24 }}
-                                {...(footerButtonProps ?? {})}
-                            >
-                                {footerButtons
-                                    ? typeof footerButtons === "function"
-                                        ? footerButtons({
-                                              defaultButtons:
-                                                  defaultFooterButtons,
-                                          })
-                                        : footerButtons
-                                    : defaultFooterButtons}
-                            </Space>,
-                        ]}
-                        {...(contentProps ?? {})}
-                    >
-                        {children}
-                    </Card>
-                </Spin>
-            </PageHeader>
-        </div>
-    );
+  return (
+    <div {...(wrapperProps ?? {})}>
+      <PageHeader
+        backIcon={goBackFromProps}
+        onBack={
+          action !== "list" || typeof action !== "undefined"
+            ? routerType === "legacy"
+              ? goBack
+              : back
+            : undefined
+        }
+        title={
+          title ??
+          translate(
+            `${identifier}.titles.create`,
+            `Create ${getUserFriendlyName(
+              resource?.meta?.label ??
+                resource?.options?.label ??
+                resource?.label ??
+                identifier,
+              "singular",
+            )}`,
+          )
+        }
+        breadcrumb={
+          typeof breadcrumb !== "undefined" ? (
+            <>{breadcrumb}</> ?? undefined
+          ) : (
+            <Breadcrumb />
+          )
+        }
+        extra={
+          <Space wrap {...(headerButtonProps ?? {})}>
+            {headerButtons
+              ? typeof headerButtons === "function"
+                ? headerButtons({
+                    defaultButtons: null,
+                  })
+                : headerButtons
+              : null}
+          </Space>
+        }
+        {...(headerProps ?? {})}
+      >
+        <Spin spinning={isLoading}>
+          <Card
+            bordered={false}
+            actions={[
+              <Space
+                key="action-buttons"
+                style={{ float: "right", marginRight: 24 }}
+                {...(footerButtonProps ?? {})}
+              >
+                {footerButtons
+                  ? typeof footerButtons === "function"
+                    ? footerButtons({
+                        defaultButtons: defaultFooterButtons,
+                        saveButtonProps: saveButtonProps,
+                      })
+                    : footerButtons
+                  : defaultFooterButtons}
+              </Space>,
+            ]}
+            {...(contentProps ?? {})}
+          >
+            {children}
+          </Card>
+        </Spin>
+      </PageHeader>
+    </div>
+  );
 };

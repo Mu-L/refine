@@ -1,28 +1,51 @@
 import { useEffect, useState } from "react";
-import { FieldValues } from "react-hook-form";
-import { BaseRecord, HttpError } from "@pankod/refine-core";
+import type { FieldValues, Path } from "react-hook-form";
+import type { BaseRecord, HttpError } from "@refinedev/core";
+import get from "lodash/get";
 
-import { useForm, UseFormProps, UseFormReturnType } from "../useForm";
+import { useForm, type UseFormProps, type UseFormReturnType } from "../useForm";
 
 export type UseStepsFormReturnType<
-    TData extends BaseRecord = BaseRecord,
-    TError extends HttpError = HttpError,
-    TVariables extends FieldValues = FieldValues,
-    TContext extends object = {},
-> = UseFormReturnType<TData, TError, TVariables, TContext> & {
-    steps: {
-        currentStep: number;
-        gotoStep: (step: number) => void;
-    };
+  TQueryFnData extends BaseRecord = BaseRecord,
+  TError extends HttpError = HttpError,
+  TVariables extends FieldValues = FieldValues,
+  TContext extends object = {},
+  TData extends BaseRecord = TQueryFnData,
+  TResponse extends BaseRecord = TData,
+  TResponseError extends HttpError = TError,
+> = UseFormReturnType<
+  TQueryFnData,
+  TError,
+  TVariables,
+  TContext,
+  TData,
+  TResponse,
+  TResponseError
+> & {
+  steps: {
+    currentStep: number;
+    gotoStep: (step: number) => void;
+  };
 };
 
 export type UseStepsFormProps<
-    TData extends BaseRecord = BaseRecord,
-    TError extends HttpError = HttpError,
-    TVariables extends FieldValues = FieldValues,
-    TContext extends object = {},
-> = UseFormProps<TData, TError, TVariables, TContext> & {
-    /**
+  TQueryFnData extends BaseRecord = BaseRecord,
+  TError extends HttpError = HttpError,
+  TVariables extends FieldValues = FieldValues,
+  TContext extends object = {},
+  TData extends BaseRecord = TQueryFnData,
+  TResponse extends BaseRecord = TData,
+  TResponseError extends HttpError = TError,
+> = UseFormProps<
+  TQueryFnData,
+  TError,
+  TVariables,
+  TContext,
+  TData,
+  TResponse,
+  TResponseError
+> & {
+  /**
      * @description Configuration object for the steps.
      * `defaultStep`: Allows you to set the initial step.
      * 
@@ -33,89 +56,117 @@ export type UseStepsFormProps<
       }`
      * @default `defaultStep = 0` `isBackValidate = false`
      */
-    stepsProps?: {
-        defaultStep?: number;
-        isBackValidate?: boolean;
-    };
+  stepsProps?: {
+    defaultStep?: number;
+    isBackValidate?: boolean;
+  };
 };
 
 export const useStepsForm = <
-    TData extends BaseRecord = BaseRecord,
-    TError extends HttpError = HttpError,
-    TVariables extends FieldValues = FieldValues,
-    TContext extends object = {},
+  TQueryFnData extends BaseRecord = BaseRecord,
+  TError extends HttpError = HttpError,
+  TVariables extends FieldValues = FieldValues,
+  TContext extends object = {},
+  TData extends BaseRecord = TQueryFnData,
+  TResponse extends BaseRecord = TData,
+  TResponseError extends HttpError = TError,
 >({
-    stepsProps,
-    ...rest
+  stepsProps,
+  ...rest
 }: UseStepsFormProps<
-    TData,
+  TQueryFnData,
+  TError,
+  TVariables,
+  TContext,
+  TData,
+  TResponse,
+  TResponseError
+> = {}): UseStepsFormReturnType<
+  TQueryFnData,
+  TError,
+  TVariables,
+  TContext,
+  TData,
+  TResponse,
+  TResponseError
+> => {
+  const { defaultStep = 0, isBackValidate = false } = stepsProps ?? {};
+  const [current, setCurrent] = useState(defaultStep);
+
+  const useHookFormResult = useForm<
+    TQueryFnData,
     TError,
     TVariables,
-    TContext
-> = {}): UseStepsFormReturnType<TData, TError, TVariables, TContext> => {
-    const { defaultStep = 0, isBackValidate = false } = stepsProps ?? {};
-    const [current, setCurrent] = useState(defaultStep);
+    TContext,
+    TData,
+    TResponse,
+    TResponseError
+  >({
+    ...rest,
+  });
 
-    const useHookFormResult = useForm({
-        ...rest,
+  const {
+    trigger,
+    getValues,
+    setValue,
+    formState: { dirtyFields },
+    refineCore: { query },
+  } = useHookFormResult;
+
+  useEffect(() => {
+    const data = query?.data?.data;
+    if (!data) return;
+
+    const registeredFields = Object.keys(getValues());
+
+    console.log({
+      dirtyFields,
+      registeredFields,
+      data,
     });
-    const {
-        trigger,
-        getValues,
-        reset,
-        formState: { dirtyFields },
-        refineCore: { queryResult },
-    } = useHookFormResult;
 
-    useEffect(() => {
-        if (queryResult?.data) {
-            const fields: any = {};
-            const registeredFields = Object.keys(getValues());
-            Object.entries(queryResult?.data?.data).forEach(([key, value]) => {
-                if (registeredFields.includes(key)) {
-                    if (dirtyFields[key]) {
-                        fields[key] = getValues(key as any);
-                    } else {
-                        fields[key] = value;
-                    }
-                }
-            });
+    Object.entries(data).forEach(([key, value]) => {
+      const name = key as Path<TVariables>;
 
-            reset(fields as any, { keepDirty: true });
+      if (registeredFields.includes(name)) {
+        if (!get(dirtyFields, name)) {
+          setValue(name, value);
         }
-    }, [queryResult?.data, current]);
+      }
+    });
+  }, [query?.data, current, setValue, getValues]);
 
-    const go = (step: number) => {
-        let targetStep = step;
+  const go = (step: number) => {
+    let targetStep = step;
 
-        if (step < 0) {
-            targetStep = 0;
-        }
+    if (step < 0) {
+      targetStep = 0;
+    }
 
-        setCurrent(targetStep);
-    };
+    setCurrent(targetStep);
+  };
 
-    const gotoStep = async (step: number) => {
-        if (step === current) {
-            return;
-        }
+  const gotoStep = async (step: number) => {
+    if (step === current) {
+      return;
+    }
 
-        if (step < current && !isBackValidate) {
-            go(step);
-            return;
-        }
+    if (step < current && !isBackValidate) {
+      go(step);
+      return;
+    }
 
-        const isValid = await trigger();
-        if (isValid) {
-            go(step);
-        }
-    };
+    const isValid = await trigger();
+    if (isValid) {
+      go(step);
+    }
+  };
 
-    return {
-        ...useHookFormResult,
-        steps: {
-            currentStep: current,
-            gotoStep,
-        },
-    };
+  return {
+    ...useHookFormResult,
+    steps: {
+      currentStep: current,
+      gotoStep,
+    },
+  };
 };

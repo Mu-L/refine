@@ -1,128 +1,90 @@
 import React from "react";
-import { Button, ButtonProps, Popconfirm } from "antd";
+import { Button, Popconfirm } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
+import { useDeleteButton } from "@refinedev/core";
 import {
-    useDelete,
-    useTranslate,
-    useMutationMode,
-    useCan,
-    useResource,
-} from "@pankod/refine-core";
-import {
-    RefineDeleteButtonProps,
-    RefineButtonTestIds,
-} from "@pankod/refine-ui-types";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
 
-export type DeleteButtonProps = RefineDeleteButtonProps<
-    ButtonProps,
-    {
-        /**
-         * @deprecated resourceName deprecated. Use resourceNameOrRouteName instead # https://github.com/refinedev/refine/issues/1618
-         */
-        resourceName?: string;
-    }
->;
+import type { DeleteButtonProps } from "../types";
 
 /**
  * `<DeleteButton>` uses Ant Design's {@link https://ant.design/components/button/ `<Button>`} and {@link https://ant.design/components/button/ `<Popconfirm>`} components.
  * When you try to delete something, a pop-up shows up and asks for confirmation. When confirmed it executes the `useDelete` method provided by your `dataProvider`.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/antd/components/buttons/delete-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/antd/components/buttons/delete-button} for more details.
  */
 export const DeleteButton: React.FC<DeleteButtonProps> = ({
-    resourceName: propResourceName,
-    resourceNameOrRouteName: propResourceNameOrRouteName,
-    recordItemId,
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName: propResourceNameOrRouteName,
+  recordItemId,
+  onSuccess,
+  mutationMode: mutationModeProp,
+  children,
+  successNotification,
+  errorNotification,
+  hideText = false,
+  accessControl,
+  metaData,
+  meta,
+  dataProviderName,
+  confirmTitle,
+  confirmOkText,
+  confirmCancelText,
+  invalidates,
+  ...rest
+}) => {
+  const {
+    title,
+    label,
+    hidden,
+    disabled,
+    loading,
+    confirmTitle: defaultConfirmTitle,
+    confirmOkLabel: defaultConfirmOkLabel,
+    cancelLabel: defaultCancelLabel,
+    onConfirm,
+  } = useDeleteButton({
+    resource: resourceNameFromProps ?? propResourceNameOrRouteName,
+    id: recordItemId,
+    dataProviderName,
+    invalidates,
+    meta,
     onSuccess,
     mutationMode: mutationModeProp,
-    children,
-    successNotification,
     errorNotification,
-    hideText = false,
+    successNotification,
     accessControl,
-    ignoreAccessControlProvider = false,
-    metaData,
-    dataProviderName,
-    confirmTitle,
-    confirmOkText,
-    confirmCancelText,
-    invalidates,
-    ...rest
-}) => {
-    const accessControlEnabled =
-        accessControl?.enabled ?? !ignoreAccessControlProvider;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const translate = useTranslate();
+  });
 
-    const { resourceName, id, resource } = useResource({
-        resourceNameOrRouteName: propResourceNameOrRouteName,
-        resourceName: propResourceName,
-        recordItemId,
-    });
+  if (hidden) return null;
 
-    const { mutationMode: mutationModeContext } = useMutationMode();
-
-    const mutationMode = mutationModeProp ?? mutationModeContext;
-
-    const { mutate, isLoading, variables } = useDelete();
-
-    const { data } = useCan({
-        resource: resourceName,
-        action: "delete",
-        params: { id, resource },
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-    });
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Popconfirm
-            key="delete"
-            okText={confirmOkText ?? translate("buttons.delete", "Delete")}
-            cancelText={
-                confirmCancelText ?? translate("buttons.cancel", "Cancel")
-            }
-            okType="danger"
-            title={
-                confirmTitle ?? translate("buttons.confirm", "Are you sure?")
-            }
-            okButtonProps={{ disabled: isLoading }}
-            onConfirm={(): void => {
-                mutate(
-                    {
-                        id: id || "",
-                        resource: resourceName,
-                        mutationMode,
-                        successNotification,
-                        errorNotification,
-                        metaData,
-                        dataProviderName,
-                        invalidates,
-                    },
-                    {
-                        onSuccess: (value) => {
-                            onSuccess && onSuccess(value);
-                        },
-                    },
-                );
-            }}
-            disabled={data?.can === false}
-        >
-            <Button
-                danger
-                loading={id === variables?.id && isLoading}
-                icon={<DeleteOutlined />}
-                disabled={data?.can === false}
-                data-testid={RefineButtonTestIds.DeleteButton}
-                {...rest}
-            >
-                {!hideText &&
-                    (children ?? translate("buttons.delete", "Delete"))}
-            </Button>
-        </Popconfirm>
-    );
+  return (
+    <Popconfirm
+      key="delete"
+      okText={confirmOkText ?? defaultConfirmOkLabel}
+      cancelText={confirmCancelText ?? defaultCancelLabel}
+      okType="danger"
+      title={confirmTitle ?? defaultConfirmTitle}
+      okButtonProps={{ disabled: loading }}
+      onConfirm={onConfirm}
+      disabled={
+        typeof rest?.disabled !== "undefined" ? rest.disabled : disabled
+      }
+    >
+      <Button
+        danger
+        loading={loading}
+        icon={<DeleteOutlined />}
+        title={title}
+        disabled={disabled}
+        data-testid={RefineButtonTestIds.DeleteButton}
+        className={RefineButtonClassNames.DeleteButton}
+        {...rest}
+      >
+        {!hideText && (children ?? label)}
+      </Button>
+    </Popconfirm>
+  );
 };

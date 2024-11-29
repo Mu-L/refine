@@ -3,21 +3,12 @@ title: Best Open-Source Headless CMS to Try for Your Next Application
 description: A headless CMS system, which can be developed quickly, contains many features you need, and helps you to produce products very quickly compared to traditional systems.
 slug: open-source-headless-cms
 authors: yildiray
-tags: [cms, headless, open-source, strapi, appwrite, directus, keystone, netlify, refine]
-image: /img/blog/2022-05-05-open-source-headless-cms/social.jpg
+tags: [comparison]
+image: https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/social.jpg
 hide_table_of_contents: false
 ---
 
-import appwrite from '@site/static/img/blog/2022-05-05-open-source-headless-cms/appwrite.jpg';
-import directus from '@site/static/img/blog/2022-05-05-open-source-headless-cms/directus.jpg';
-import keystone from '@site/static/img/blog/2022-05-05-open-source-headless-cms/keystone.jpg';
-import netlify from '@site/static/img/blog/2022-05-05-open-source-headless-cms/netlify.jpg';
-import refine from '@site/static/img/blog/2022-05-05-open-source-headless-cms/refine.jpg';
-import strapi from '@site/static/img/blog/2022-05-05-open-source-headless-cms/strapi.jpg';
-
-
 ## Best Open-Source Headless CMS to Try for Your Next Application
-
 
 A headless CMS system, which can be developed quickly, contains many features you need, and helps you to produce products very quickly compared to traditional systems.
 
@@ -39,15 +30,15 @@ It is the leading open source headless CMS for your applications after [Strapi](
 
 Strapi is an open source platform and has many contributors. It is easy to customize the API and admin panel. It has become more powerful with plugins. It has an advanced and developer-oriented SDK.
 
-<img src={strapi} alt="strapi" />
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/strapi.jpg" alt="strapi" />
  
-Free service with limited features. Get more benefits with the paid plan starting at $9/month. 
+Free service with limited features. Get more benefits with the paid plan starting at $9/month.
 
 ### Directus
 
 It is one of the best Open Data Platforms for turning SQL databases into beautiful no-code apps and APIs with [Directus](https://directus.io). Strengthens your project with innovative solutions.
 
-<img src={directus} alt="directus" />
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/directus.jpg" alt="directus" />
 
 You can use Directus for free on your own server. With the Cloud solution, you can use it effortlessly by paying $25/month.
 
@@ -57,14 +48,13 @@ Appwrite is an end-to-end backend server that is aiming to abstract the complexi
 
 Appwrite provides you with a set of APIs, tools, and a management console UI to help you build your apps a lot faster and in a much more secure way. Between Appwrite different services, you can find user authentication and account management, user preferences, database and storage persistence, cloud functions, localization, image manipulation, and more.
 
-<img src={appwrite} alt="appwrite" />
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/appwrite.jpg" alt="appwrite" />
 
 ### Netlify CMS
 
 Build flexible and faster web projects using [Netlify](https://www.netlifycms.org) CMS in combination with the static site builder. Netlify CMS stores your content in a Git repository for easier and simpler versioning. It also helps with multi-threading and handling content updates within Git.
 
-<img src={netlify} alt="netlify" />
- 
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/netlify.jpg" alt="netlify" />
 
 It is designed as a one-page React app; so you can add UI widgets, editor plugins and backends to support various Git platform APIs.
 
@@ -78,18 +68,18 @@ Build faster content with the [Keystone](https://keystonejs.com). Just describe 
 
 Submit the code with APIs without sacrificing the flexibility of the backend. It offers multiple field types, session management, custom schema, access control, database migrations, powerful filters, relational data, event hooks, automated CRUD, and more.
 
-<img src={keystone} alt="keystone" />
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/keystone.jpg" alt="keystone" />
 
 ### Refine
 
-If you are looking for a framework that will provide extreme customizability to your application, [refine](https://github.com/refinedev/refine) will be a very good alternative. Refine doesn't have any back-end support yet, but if you have a rest-full API or GraphQL api it allows you to build very flexible applications.
+If you are looking for a framework that will provide extreme customizability to your application, [Refine](https://github.com/refinedev/refine) will be a very good alternative. Refine doesn't have any back-end support yet, but if you have a rest-full API or GraphQL api it allows you to build very flexible applications.
 
 Refine comes with Ant Design and can also be used headless if you prefer.
 
-<img src={refine} alt="refine" />
- 
+<img src="https://refine.ams3.cdn.digitaloceanspaces.com/blog/2022-05-05-open-source-headless-cms/refine.jpg" alt="refine" />
 
 ### Conclusion
+
 Headless CMS systems offer a modern and efficient approach to creating and distributing content across multiple channels with high performance, flexibility, scalability and a host of useful features.
 
 So, if you are looking for an open source headless CMS system, check out the above options based on your needs.

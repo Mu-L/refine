@@ -1,121 +1,85 @@
 import React from "react";
+import { useCreateButton } from "@refinedev/core";
 import {
-    useNavigation,
-    useTranslate,
-    useCan,
-    useResource,
-    useRouterContext,
-} from "@pankod/refine-core";
-import {
-    RefineCreateButtonProps,
-    RefineButtonTestIds,
-} from "@pankod/refine-ui-types";
-import { ActionIcon, Anchor, Button, ButtonProps } from "@mantine/core";
-import { IconSquarePlus, TablerIconProps } from "@tabler/icons";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
+import { ActionIcon, Anchor, Button } from "@mantine/core";
+import { IconSquarePlus } from "@tabler/icons-react";
 
 import { mapButtonVariantToActionIconVariant } from "@definitions/button";
-
-export type CreateButtonProps = RefineCreateButtonProps<
-    ButtonProps,
-    {
-        svgIconProps?: TablerIconProps;
-    }
->;
+import type { CreateButtonProps } from "../types";
 
 export const CreateButton: React.FC<CreateButtonProps> = ({
-    resourceNameOrRouteName,
-    hideText = false,
-    accessControl,
-    ignoreAccessControlProvider = false,
-    svgIconProps,
-    children,
-    onClick,
-    ...rest
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName,
+  hideText = false,
+  accessControl,
+  svgIconProps,
+  meta,
+  children,
+  onClick,
+  ...rest
 }) => {
-    const accessControlEnabled =
-        accessControl?.enabled ?? !ignoreAccessControlProvider;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const { resource, resourceName } = useResource({
-        resourceNameOrRouteName,
-    });
+  const { to, label, title, disabled, hidden, LinkComponent } = useCreateButton(
+    {
+      resource: resourceNameFromProps ?? resourceNameOrRouteName,
+      accessControl,
+      meta,
+    },
+  );
 
-    const { Link } = useRouterContext();
-    const { createUrl: generateCreateUrl } = useNavigation();
+  if (hidden) return null;
 
-    const translate = useTranslate();
+  const { variant, styles, ...commonProps } = rest;
 
-    const { data } = useCan({
-        resource: resourceName,
-        action: "create",
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-        params: {
-            resource,
-        },
-    });
-
-    const disabledTitle = () => {
-        if (data?.can) return "";
-        else if (data?.reason) return data.reason;
-        else
-            return translate(
-                "buttons.notAccessTitle",
-                "You don't have permission to access",
-            );
-    };
-
-    const createUrl = generateCreateUrl(resource.route!);
-
-    const { variant, styles, ...commonProps } = rest;
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Anchor
-            component={Link}
-            to={createUrl}
-            replace={false}
-            onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
-                if (data?.can === false) {
-                    e.preventDefault();
-                    return;
-                }
-                if (onClick) {
-                    e.preventDefault();
-                    onClick(e);
-                }
-            }}
+  return (
+    <Anchor
+      component={LinkComponent as any}
+      to={to}
+      replace={false}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
+        if (onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+    >
+      {hideText ? (
+        <ActionIcon
+          title={title}
+          disabled={disabled}
+          aria-label={label}
+          color="primary"
+          {...(variant
+            ? {
+                variant: mapButtonVariantToActionIconVariant(variant),
+              }
+            : { variant: "filled" })}
+          data-testid={RefineButtonTestIds.CreateButton}
+          className={RefineButtonClassNames.CreateButton}
+          {...commonProps}
         >
-            {hideText ? (
-                <ActionIcon
-                    title={disabledTitle()}
-                    disabled={data?.can === false}
-                    {...(variant
-                        ? {
-                              variant:
-                                  mapButtonVariantToActionIconVariant(variant),
-                          }
-                        : { variant: "default" })}
-                    data-testid={RefineButtonTestIds.CreateButton}
-                    {...commonProps}
-                >
-                    <IconSquarePlus size={18} {...svgIconProps} />
-                </ActionIcon>
-            ) : (
-                <Button
-                    disabled={data?.can === false}
-                    leftIcon={<IconSquarePlus size={18} {...svgIconProps} />}
-                    title={disabledTitle()}
-                    data-testid={RefineButtonTestIds.CreateButton}
-                    variant="default"
-                    {...rest}
-                >
-                    {children ?? translate("buttons.create", "Create")}
-                </Button>
-            )}
-        </Anchor>
-    );
+          <IconSquarePlus size={18} {...svgIconProps} />
+        </ActionIcon>
+      ) : (
+        <Button
+          disabled={disabled}
+          leftIcon={<IconSquarePlus size={18} {...svgIconProps} />}
+          title={title}
+          data-testid={RefineButtonTestIds.CreateButton}
+          className={RefineButtonClassNames.CreateButton}
+          color="primary"
+          variant="filled"
+          {...rest}
+        >
+          {children ?? label}
+        </Button>
+      )}
+    </Anchor>
+  );
 };

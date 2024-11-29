@@ -1,121 +1,74 @@
 import React from "react";
+import { useListButton } from "@refinedev/core";
 import {
-    useCan,
-    useNavigation,
-    useTranslate,
-    userFriendlyResourceName,
-    useResource,
-    useRouterContext,
-} from "@pankod/refine-core";
-import {
-    RefineButtonTestIds,
-    RefineListButtonProps,
-} from "@pankod/refine-ui-types";
-import { Button, ButtonProps, SvgIconProps } from "@mui/material";
-import ListOutlinedIcon from "@mui/icons-material/ListOutlined";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
 
-export type ListButtonProps = RefineListButtonProps<
-    ButtonProps,
-    {
-        svgIconProps?: SvgIconProps;
-    }
->;
+import Button from "@mui/material/Button";
+import ListOutlined from "@mui/icons-material/ListOutlined";
+
+import type { ListButtonProps } from "../types";
 
 /**
  * `<ListButton>` is using uses Material UI {@link https://mui.com/components/buttons/ `<Button>`} component.
- * It uses the  {@link https://refine.dev/docs/core/hooks/navigation/useNavigation#list `list`} method from {@link https://refine.dev/docs/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
+ * It uses the  {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation#list `list`} method from {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
  * It can be useful when redirecting the app to the list page route of resource}.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/mui/components/buttons/list-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/mui/components/buttons/list-button} for more details.
  */
 export const ListButton: React.FC<ListButtonProps> = ({
-    resourceNameOrRouteName,
-    hideText = false,
-    accessControl,
-    ignoreAccessControlProvider = false,
-    svgIconProps,
-    children,
-    onClick,
-    ...rest
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName,
+  hideText = false,
+  accessControl,
+  svgIconProps,
+  meta,
+  children,
+  onClick,
+  ...rest
 }) => {
-    const accessControlEnabled =
-        accessControl?.enabled ?? !ignoreAccessControlProvider;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const { resource, resourceName } = useResource({
-        resourceNameOrRouteName,
-    });
+  const { to, label, title, hidden, disabled, LinkComponent } = useListButton({
+    resource: resourceNameFromProps ?? resourceNameOrRouteName,
+    meta,
+    accessControl,
+  });
 
-    const { listUrl: generateListUrl } = useNavigation();
-    const { Link } = useRouterContext();
+  if (hidden) return null;
 
-    const translate = useTranslate();
+  const { sx, ...restProps } = rest;
 
-    const { data } = useCan({
-        resource: resourceName,
-        action: "list",
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-        params: {
-            resource,
-        },
-    });
-
-    const disabledTitle = () => {
-        if (data?.can) return "";
-        else if (data?.reason) return data.reason;
-        else
-            return translate(
-                "buttons.notAccessTitle",
-                "You don't have permission to access",
-            );
-    };
-
-    const listUrl = generateListUrl(resource.route!);
-
-    const { sx, ...restProps } = rest;
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Link
-            to={listUrl}
-            replace={false}
-            onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-                if (data?.can === false) {
-                    e.preventDefault();
-                    return;
-                }
-                if (onClick) {
-                    e.preventDefault();
-                    onClick(e);
-                }
-            }}
-            style={{ textDecoration: "none" }}
-        >
-            <Button
-                disabled={data?.can === false}
-                startIcon={!hideText && <ListOutlinedIcon {...svgIconProps} />}
-                title={disabledTitle()}
-                sx={{ minWidth: 0, ...sx }}
-                data-testid={RefineButtonTestIds.ListButton}
-                {...restProps}
-            >
-                {hideText ? (
-                    <ListOutlinedIcon fontSize="small" {...svgIconProps} />
-                ) : (
-                    children ??
-                    translate(
-                        `${resourceName}.titles.list`,
-                        userFriendlyResourceName(
-                            resource.label ?? resourceName,
-                            "plural",
-                        ),
-                    )
-                )}
-            </Button>
-        </Link>
-    );
+  return (
+    <LinkComponent
+      to={to}
+      replace={false}
+      onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
+        if (onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+      style={{ textDecoration: "none" }}
+    >
+      <Button
+        disabled={disabled}
+        startIcon={!hideText && <ListOutlined {...svgIconProps} />}
+        title={title}
+        sx={{ minWidth: 0, ...sx }}
+        data-testid={RefineButtonTestIds.ListButton}
+        className={RefineButtonClassNames.ListButton}
+        {...restProps}
+      >
+        {hideText ? (
+          <ListOutlined fontSize="small" {...svgIconProps} />
+        ) : (
+          children ?? label
+        )}
+      </Button>
+    </LinkComponent>
+  );
 };

@@ -1,22 +1,38 @@
 import React from "react";
-import { useRouterContext, TitleProps } from "@pankod/refine-core";
-import { Button } from "@mui/material";
+import {
+  useRouterContext,
+  type TitleProps,
+  useLink,
+  useRouterType,
+} from "@refinedev/core";
 
-import logo from "../../../assets/images/refine.svg";
-import logoCollapsed from "../../../assets/images/refine-collapsed.svg";
+import Button from "@mui/material/Button";
 
 export const Title: React.FC<TitleProps> = ({ collapsed }) => {
-    const { Link } = useRouterContext();
+  const routerType = useRouterType();
+  const Link = useLink();
+  const { Link: LegacyLink } = useRouterContext();
 
-    return (
-        <Button fullWidth variant="text" disableRipple>
-            <Link to="/">
-                {collapsed ? (
-                    <img src={logoCollapsed} alt="Refine" width="28px" />
-                ) : (
-                    <img src={logo} alt="Refine" width="140px" />
-                )}
-            </Link>
-        </Button>
-    );
+  const ActiveLink = routerType === "legacy" ? LegacyLink : Link;
+
+  return (
+    <Button fullWidth variant="text" disableRipple>
+      <ActiveLink to="/">
+        {collapsed ? (
+          <img
+            src="https://refine.ams3.cdn.digitaloceanspaces.com/logo/refine-mini.svg"
+            alt="Refine"
+            width="28px"
+            style={{ maxHeight: "38px" }}
+          />
+        ) : (
+          <img
+            src="https://refine.ams3.cdn.digitaloceanspaces.com/logo/refine.svg"
+            alt="Refine"
+            width="140px"
+          />
+        )}
+      </ActiveLink>
+    </Button>
+  );
 };

@@ -1,36 +1,20 @@
-import React, { ReactNode } from "react";
-import { PageHeader, PageHeaderProps, Space, SpaceProps } from "antd";
+import React from "react";
+import { Space } from "antd";
 import {
-    useResourceWithRoute,
-    useRouterContext,
-    useTranslate,
-    userFriendlyResourceName,
-    ResourceRouterParams,
-    useRefineContext,
-} from "@pankod/refine-core";
+  useTranslate,
+  useUserFriendlyName,
+  useRefineContext,
+  useRouterType,
+  useResource,
+} from "@refinedev/core";
 
-import { Breadcrumb, CreateButton, CreateButtonProps } from "@components";
-import { RefineCrudListProps } from "@pankod/refine-ui-types";
-
-export type ListProps = RefineCrudListProps<
-    CreateButtonProps,
-    SpaceProps,
-    React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLDivElement>,
-        HTMLDivElement
-    >,
-    PageHeaderProps,
-    React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLDivElement>,
-        HTMLDivElement
-    >,
-    {
-        /**
-         * @deprecated use `headerProps`, `wrapperProps` and `contentProps` instead.
-         */
-        pageHeaderProps?: PageHeaderProps;
-    }
->;
+import {
+  Breadcrumb,
+  CreateButton,
+  type CreateButtonProps,
+  PageHeader,
+} from "@components";
+import type { ListProps } from "../types";
 
 /**
  * `<List>` provides us a layout for displaying the page.
@@ -39,84 +23,90 @@ export type ListProps = RefineCrudListProps<
  * @see {@link https://refine.dev/docs/ui-frameworks/antd/components/basic-views/list} for more details.
  */
 export const List: React.FC<ListProps> = ({
-    canCreate,
-    title,
-    children,
-    createButtonProps,
-    pageHeaderProps,
-    resource: resourceFromProps,
-    wrapperProps,
-    contentProps,
-    headerProps,
-    breadcrumb: breadcrumbFromProps,
-    headerButtonProps,
-    headerButtons,
+  canCreate,
+  title,
+  children,
+  createButtonProps: createButtonPropsFromProps,
+  resource: resourceFromProps,
+  wrapperProps,
+  contentProps,
+  headerProps,
+  breadcrumb: breadcrumbFromProps,
+  headerButtonProps,
+  headerButtons,
 }) => {
-    const { useParams } = useRouterContext();
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { resource: routeResourceName } = useParams<ResourceRouterParams>();
+  const routerType = useRouterType();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const translate = useTranslate();
-    const resourceWithRoute = useResourceWithRoute();
+  const { resource, identifier } = useResource(resourceFromProps);
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const isCreateButtonVisible =
+    canCreate ??
+    ((resource?.canCreate ?? !!resource?.create) || createButtonPropsFromProps);
 
-    const isCreateButtonVisible =
-        canCreate ?? (resource.canCreate || createButtonProps);
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const { options } = useRefineContext();
-    const breadcrumb =
-        typeof breadcrumbFromProps === "undefined"
-            ? options?.breadcrumb
-            : breadcrumbFromProps;
+  const createButtonProps: CreateButtonProps | undefined = isCreateButtonVisible
+    ? {
+        size: "middle",
+        resource: routerType === "legacy" ? resource?.route : identifier,
+        ...createButtonPropsFromProps,
+      }
+    : undefined;
 
-    const defaultExtra = isCreateButtonVisible ? (
-        <CreateButton
-            size="middle"
-            resourceNameOrRouteName={resource.route}
-            {...createButtonProps}
-        />
-    ) : null;
+  const defaultExtra = isCreateButtonVisible ? (
+    <CreateButton {...createButtonProps} />
+  ) : null;
 
-    return (
-        <div {...(wrapperProps ?? {})}>
-            <PageHeader
-                ghost={false}
-                title={
-                    title ??
-                    translate(
-                        `${resource.name}.titles.list`,
-                        userFriendlyResourceName(
-                            resource.label ?? resource.name,
-                            "plural",
-                        ),
-                    )
-                }
-                extra={
-                    headerButtons ? (
-                        <Space wrap {...headerButtonProps}>
-                            {typeof headerButtons === "function"
-                                ? headerButtons({
-                                      defaultButtons: defaultExtra,
-                                  })
-                                : headerButtons}
-                        </Space>
-                    ) : (
-                        defaultExtra
-                    )
-                }
-                breadcrumb={
-                    typeof breadcrumb !== "undefined" ? (
-                        <>{breadcrumb}</> ?? undefined
-                    ) : (
-                        <Breadcrumb />
-                    )
-                }
-                {...(pageHeaderProps ?? {})}
-                {...(headerProps ?? {})}
-            >
-                <div {...(contentProps ?? {})}>{children}</div>
-            </PageHeader>
-        </div>
-    );
+  return (
+    <div {...(wrapperProps ?? {})}>
+      <PageHeader
+        title={
+          title ??
+          translate(
+            `${identifier}.titles.list`,
+            getUserFriendlyName(
+              resource?.meta?.label ??
+                resource?.options?.label ??
+                resource?.label ??
+                identifier,
+              "plural",
+            ),
+          )
+        }
+        extra={
+          headerButtons ? (
+            <Space wrap {...headerButtonProps}>
+              {typeof headerButtons === "function"
+                ? headerButtons({
+                    defaultButtons: defaultExtra,
+                    createButtonProps,
+                  })
+                : headerButtons}
+            </Space>
+          ) : (
+            defaultExtra
+          )
+        }
+        breadcrumb={
+          typeof breadcrumb !== "undefined" ? (
+            <>{breadcrumb}</> ?? undefined
+          ) : (
+            <Breadcrumb />
+          )
+        }
+        {...(headerProps ?? {})}
+      >
+        <div {...(contentProps ?? {})}>{children}</div>
+      </PageHeader>
+    </div>
+  );
 };

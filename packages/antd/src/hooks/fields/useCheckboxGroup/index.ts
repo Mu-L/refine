@@ -1,46 +1,87 @@
-import { QueryObserverResult } from "@tanstack/react-query";
+import type { QueryObserverResult } from "@tanstack/react-query";
+import type { Checkbox } from "antd";
 
-import { CheckboxGroupProps } from "antd/lib/checkbox";
 import {
-    BaseRecord,
-    GetListResponse,
-    HttpError,
-    UseSelectProps,
-    useSelect,
-    BaseKey,
-} from "@pankod/refine-core";
+  type BaseRecord,
+  type GetListResponse,
+  type HttpError,
+  type UseSelectProps,
+  useSelect,
+  type BaseKey,
+  pickNotDeprecated,
+  type BaseOption,
+} from "@refinedev/core";
 
-export type UseCheckboxGroupReturnType<TData extends BaseRecord = BaseRecord> =
-    {
-        checkboxGroupProps: CheckboxGroupProps;
-        queryResult: QueryObserverResult<GetListResponse<TData>>;
-    };
+export type UseCheckboxGroupReturnType<
+  TData extends BaseRecord = BaseRecord,
+  TOption extends BaseOption = BaseOption,
+> = {
+  checkboxGroupProps: Omit<
+    React.ComponentProps<typeof Checkbox.Group>,
+    "options"
+  > & {
+    options: TOption[];
+  };
+  query: QueryObserverResult<GetListResponse<TData>>;
+  /**
+   * @deprecated Use `query` instead
+   */
+  queryResult: QueryObserverResult<GetListResponse<TData>>;
+};
+
+type UseCheckboxGroupProps<TQueryFnData, TError, TData> = Omit<
+  UseSelectProps<TQueryFnData, TError, TData>,
+  "defaultValue"
+> & {
+  /**
+   * Sets the default value
+   */
+  defaultValue?: BaseKey[];
+};
 
 /**
  * `useCheckboxGroup` hook allows you to manage an Ant Design {@link https://ant.design/components/checkbox/#components-checkbox-demo-group Checkbox.Group} component when records in a resource needs to be used as checkbox options.
  *
- * @see {@link https://refine.dev/docs/ui-framewors/antd/hooks/field/useCheckboxGroup} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/antd/hooks/field/useCheckboxGroup/} for more details
  *
- * @typeParam TData - Result data of the query extends {@link https://refine.dev/docs/api-references/interfaceReferences#baserecord `BaseRecord`}
+ * @typeParam TQueryFnData - Result data returned by the query function. Extends {@link https://refine.dev/docs/api-reference/core/interfaceReferences#baserecord `BaseRecord`}
+ * @typeParam TError - Custom error object that extends {@link https://refine.dev/docs/api-reference/core/interfaceReferences#httperror `HttpError`}
+ * @typeParam TData - Result data returned by the `select` function. Extends {@link https://refine.dev/docs/api-reference/core/interfaceReferences#baserecord `BaseRecord`}. Defaults to `TQueryFnData`
  *
  */
 
-type UseCheckboxGroupProps<TData, TError> = Omit<
-    UseSelectProps<TData, TError>,
-    "defaultValue"
-> & {
-    /**
-     * Sets the default value
-     */
-    defaultValue?: BaseKey[];
-};
-
 export const useCheckboxGroup = <
-    TData extends BaseRecord = BaseRecord,
-    TError extends HttpError = HttpError,
+  TQueryFnData extends BaseRecord = BaseRecord,
+  TError extends HttpError = HttpError,
+  TData extends BaseRecord = TQueryFnData,
+  TOption extends BaseOption = BaseOption,
 >({
+  resource,
+  sort,
+  sorters,
+  filters,
+  optionLabel,
+  optionValue,
+  queryOptions,
+  fetchSize,
+  pagination,
+  liveMode,
+  defaultValue,
+  selectedOptionsOrder,
+  onLiveEvent,
+  liveParams,
+  meta,
+  metaData,
+  dataProviderName,
+}: UseCheckboxGroupProps<
+  TQueryFnData,
+  TError,
+  TData
+>): UseCheckboxGroupReturnType<TData, TOption> => {
+  const { query, options } = useSelect<TQueryFnData, TError, TData, TOption>({
     resource,
     sort,
+    sorters,
     filters,
     optionLabel,
     optionValue,
@@ -49,32 +90,19 @@ export const useCheckboxGroup = <
     pagination,
     liveMode,
     defaultValue,
+    selectedOptionsOrder,
     onLiveEvent,
     liveParams,
-    metaData,
+    meta: pickNotDeprecated(meta, metaData),
+    metaData: pickNotDeprecated(meta, metaData),
     dataProviderName,
-}: UseCheckboxGroupProps<TData, TError>): UseCheckboxGroupReturnType<TData> => {
-    const { queryResult, options } = useSelect({
-        resource,
-        sort,
-        filters,
-        optionLabel,
-        optionValue,
-        queryOptions,
-        fetchSize,
-        pagination,
-        liveMode,
-        defaultValue,
-        onLiveEvent,
-        liveParams,
-        metaData,
-        dataProviderName,
-    });
-    return {
-        checkboxGroupProps: {
-            options,
-            defaultValue,
-        },
-        queryResult,
-    };
+  });
+  return {
+    checkboxGroupProps: {
+      options,
+      defaultValue,
+    },
+    query,
+    queryResult: query,
+  };
 };

@@ -1,111 +1,67 @@
 import React from "react";
-import { Button, ButtonProps } from "antd";
+import { Button } from "antd";
 import { PlusSquareOutlined } from "@ant-design/icons";
+import { useCreateButton } from "@refinedev/core";
 import {
-    useNavigation,
-    useTranslate,
-    useCan,
-    useResource,
-    useRouterContext,
-} from "@pankod/refine-core";
-import {
-    RefineCreateButtonProps,
-    RefineButtonTestIds,
-} from "@pankod/refine-ui-types";
+  RefineButtonClassNames,
+  RefineButtonTestIds,
+} from "@refinedev/ui-types";
 
-export type CreateButtonProps = RefineCreateButtonProps<
-    ButtonProps,
-    {
-        /**
-         * @deprecated resourceName deprecated. Use resourceNameOrRouteName instead # https://github.com/refinedev/refine/issues/1618
-         */
-        resourceName?: string;
-    }
->;
+import type { CreateButtonProps } from "../types";
 
 /**
  * <CreateButton> uses Ant Design's {@link https://ant.design/components/button/ `<Button> component`}.
- * It uses the {@link https://refine.dev/docs/core/hooks/navigation/useNavigation#create `create`} method from {@link https://refine.dev/docs/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
+ * It uses the {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation#create `create`} method from {@link https://refine.dev/docs/api-reference/core/hooks/navigation/useNavigation `useNavigation`} under the hood.
  * It can be useful to redirect the app to the create page route of resource}.
  *
- * @see {@link https://refine.dev/docs/ui-frameworks/antd/components/buttons/create-button} for more details.
+ * @see {@link https://refine.dev/docs/api-reference/antd/components/buttons/create-button} for more details.
  */
 export const CreateButton: React.FC<CreateButtonProps> = ({
-    resourceName: propResourceName,
-    resourceNameOrRouteName: propResourceNameOrRouteName,
-    hideText = false,
-    accessControl,
-    ignoreAccessControlProvider = false,
-    children,
-    onClick,
-    ...rest
+  resource: resourceNameFromProps,
+  resourceNameOrRouteName: propResourceNameOrRouteName,
+  hideText = false,
+  accessControl,
+  meta,
+  children,
+  onClick,
+  ...rest
 }) => {
-    const accessControlEnabled =
-        accessControl?.enabled ?? !ignoreAccessControlProvider;
-    const hideIfUnauthorized = accessControl?.hideIfUnauthorized ?? false;
-    const translate = useTranslate();
+  const { hidden, disabled, label, title, LinkComponent, to } = useCreateButton(
+    {
+      resource: resourceNameFromProps ?? propResourceNameOrRouteName,
+      accessControl,
+      meta,
+    },
+  );
 
-    const { Link } = useRouterContext();
+  if (hidden) return null;
 
-    const { createUrl: generateCreateUrl } = useNavigation();
-
-    const { resourceName, resource } = useResource({
-        resourceName: propResourceName,
-        resourceNameOrRouteName: propResourceNameOrRouteName,
-    });
-
-    const { data } = useCan({
-        resource: resourceName,
-        action: "create",
-        queryOptions: {
-            enabled: accessControlEnabled,
-        },
-        params: {
-            resource,
-        },
-    });
-
-    const createButtonDisabledTitle = () => {
-        if (data?.can) return "";
-        else if (data?.reason) return data.reason;
-        else
-            return translate(
-                "buttons.notAccessTitle",
-                "You don't have permission to access",
-            );
-    };
-
-    const createUrl = generateCreateUrl(propResourceName ?? resource.route!);
-
-    if (accessControlEnabled && hideIfUnauthorized && !data?.can) {
-        return null;
-    }
-
-    return (
-        <Link
-            to={createUrl}
-            replace={false}
-            onClick={(e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-                if (data?.can === false) {
-                    e.preventDefault();
-                    return;
-                }
-                if (onClick) {
-                    e.preventDefault();
-                    onClick(e);
-                }
-            }}
-        >
-            <Button
-                icon={<PlusSquareOutlined />}
-                disabled={data?.can === false}
-                title={createButtonDisabledTitle()}
-                data-testid={RefineButtonTestIds.CreateButton}
-                {...rest}
-            >
-                {!hideText &&
-                    (children ?? translate("buttons.create", "Create"))}
-            </Button>
-        </Link>
-    );
+  return (
+    <LinkComponent
+      to={to}
+      replace={false}
+      onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
+        if (onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+    >
+      <Button
+        icon={<PlusSquareOutlined />}
+        disabled={disabled}
+        title={title}
+        data-testid={RefineButtonTestIds.CreateButton}
+        className={RefineButtonClassNames.CreateButton}
+        type="primary"
+        {...rest}
+      >
+        {!hideText && (children ?? label)}
+      </Button>
+    </LinkComponent>
+  );
 };

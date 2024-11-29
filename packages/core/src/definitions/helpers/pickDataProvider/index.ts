@@ -1,19 +1,29 @@
-import { IResourceItem } from "@contexts/resource";
+import type { IResourceItem } from "../../../contexts/resource/types";
+import { pickResource } from "../pick-resource";
+import { pickNotDeprecated } from "../pickNotDeprecated";
 
+/**
+ * Picks the data provider name based on the provided name or fallbacks to resource definition, or `default`.
+ */
 export const pickDataProvider = (
-    resourceName?: string,
-    dataProviderName?: string,
-    resources?: IResourceItem[],
+  resourceName?: string,
+  dataProviderName?: string,
+  resources?: IResourceItem[],
 ) => {
-    if (dataProviderName) {
-        return dataProviderName;
-    }
+  if (dataProviderName) {
+    return dataProviderName;
+  }
 
-    const resource = resources?.find((item) => item.name === resourceName);
+  /**
+   * In this helper, we don't do `route` based matching therefore there's no need to check for `legacy` behaviors.
+   */
+  const resource = pickResource(resourceName, resources);
 
-    if (resource?.options?.dataProviderName) {
-        return resource.options.dataProviderName;
-    }
+  const meta = pickNotDeprecated(resource?.meta, resource?.options);
 
-    return "default";
+  if (meta?.dataProviderName) {
+    return meta.dataProviderName;
+  }
+
+  return "default";
 };

@@ -1,115 +1,109 @@
-import React, { ReactNode } from "react";
-import { RefineCrudListProps } from "@pankod/refine-ui-types";
+import React from "react";
+import { Box, Card, Group, Stack, Title } from "@mantine/core";
 import {
-    Box,
-    BoxProps,
-    Card,
-    CardProps,
-    Group,
-    GroupProps,
-    Stack,
-    Title,
-} from "@mantine/core";
-import {
-    ResourceRouterParams,
-    useRefineContext,
-    useResourceWithRoute,
-    userFriendlyResourceName,
-    useRouterContext,
-    useTranslate,
-} from "@pankod/refine-core";
+  useRefineContext,
+  useResource,
+  useUserFriendlyName,
+  useRouterType,
+  useTranslate,
+} from "@refinedev/core";
 
-import { CreateButton, CreateButtonProps } from "@components/buttons";
-import { Breadcrumb } from "@components/breadcrumb";
-
-export type ListProps = RefineCrudListProps<
-    CreateButtonProps,
-    GroupProps,
-    CardProps,
-    GroupProps,
-    BoxProps
->;
+import { CreateButton, Breadcrumb, type CreateButtonProps } from "@components";
+import type { ListProps } from "../types";
+import { RefinePageHeaderClassNames } from "@refinedev/ui-types";
 
 export const List: React.FC<ListProps> = (props) => {
-    const {
-        canCreate,
-        children,
-        createButtonProps,
-        resource: resourceFromProps,
-        wrapperProps,
-        contentProps,
-        headerProps,
-        headerButtonProps,
-        headerButtons: headerButtonsFromProps,
-        breadcrumb: breadcrumbFromProps,
-        title,
-    } = props;
-    const translate = useTranslate();
+  const {
+    canCreate,
+    children,
+    createButtonProps: createButtonPropsFromProps,
+    resource: resourceFromProps,
+    wrapperProps,
+    contentProps,
+    headerProps,
+    headerButtonProps,
+    headerButtons: headerButtonsFromProps,
+    breadcrumb: breadcrumbFromProps,
+    title,
+  } = props;
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { useParams } = useRouterContext();
+  const routerType = useRouterType();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const { resource: routeResourceName } = useParams<ResourceRouterParams>();
+  const { resource, identifier } = useResource(resourceFromProps);
 
-    const resourceWithRoute = useResourceWithRoute();
+  const isCreateButtonVisible =
+    canCreate ??
+    ((resource?.canCreate ?? !!resource?.create) || createButtonPropsFromProps);
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const isCreateButtonVisible =
-        canCreate ?? (resource.canCreate || createButtonProps);
+  const createButtonProps: CreateButtonProps | undefined = isCreateButtonVisible
+    ? ({
+        size: "sm",
+        resource: routerType === "legacy" ? resource?.route : identifier,
+        ...createButtonPropsFromProps,
+      } as const)
+    : undefined;
 
-    const defaultHeaderButtons = isCreateButtonVisible ? (
-        <CreateButton
-            size="sm"
-            resourceNameOrRouteName={resource.route}
-            {...createButtonProps}
-        />
-    ) : null;
+  const defaultHeaderButtons = isCreateButtonVisible ? (
+    <CreateButton {...createButtonProps} />
+  ) : null;
 
-    const { options } = useRefineContext();
-    const breadcrumb =
-        typeof breadcrumbFromProps === "undefined"
-            ? options?.breadcrumb
-            : breadcrumbFromProps;
-
-    const breadcrumbComponent =
-        typeof breadcrumb !== "undefined" ? (
-            <>{breadcrumb}</> ?? undefined
-        ) : (
-            <Breadcrumb />
-        );
-
-    const headerButtons = headerButtonsFromProps
-        ? typeof headerButtonsFromProps === "function"
-            ? headerButtonsFromProps({
-                  defaultButtons: defaultHeaderButtons,
-              })
-            : headerButtonsFromProps
-        : defaultHeaderButtons;
-
-    return (
-        <Card p="md" {...wrapperProps}>
-            <Group position="apart" align="center" {...headerProps}>
-                <Stack spacing="xs">
-                    {breadcrumbComponent}
-                    {title ?? (
-                        <Title order={3} transform="capitalize">
-                            {translate(
-                                `${resource.name}.titles.list`,
-                                userFriendlyResourceName(
-                                    resource.label ?? resource.name,
-                                    "plural",
-                                ),
-                            )}
-                        </Title>
-                    )}
-                </Stack>
-                <Group spacing="xs" {...headerButtonProps}>
-                    {headerButtons}
-                </Group>
-            </Group>
-            <Box pt="sm" {...contentProps}>
-                {children}
-            </Box>
-        </Card>
+  const breadcrumbComponent =
+    typeof breadcrumb !== "undefined" ? (
+      <>{breadcrumb}</> ?? undefined
+    ) : (
+      <Breadcrumb />
     );
+
+  const headerButtons = headerButtonsFromProps
+    ? typeof headerButtonsFromProps === "function"
+      ? headerButtonsFromProps({
+          defaultButtons: defaultHeaderButtons,
+          createButtonProps,
+        })
+      : headerButtonsFromProps
+    : defaultHeaderButtons;
+
+  return (
+    <Card p="md" {...wrapperProps}>
+      <Group position="apart" align="center" {...headerProps}>
+        <Stack spacing="xs">
+          {breadcrumbComponent}
+          {title ?? (
+            <Title
+              order={3}
+              transform="capitalize"
+              className={RefinePageHeaderClassNames.Title}
+            >
+              {translate(
+                `${identifier}.titles.list`,
+                getUserFriendlyName(
+                  resource?.meta?.label ??
+                    resource?.options?.label ??
+                    resource?.label ??
+                    identifier,
+                  "plural",
+                ),
+              )}
+            </Title>
+          )}
+        </Stack>
+        <Group spacing="xs" {...headerButtonProps}>
+          {headerButtons}
+        </Group>
+      </Group>
+      <Box pt="sm" {...contentProps}>
+        {children}
+      </Box>
+    </Card>
+  );
 };

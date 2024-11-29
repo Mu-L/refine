@@ -1,150 +1,151 @@
-import React, { ReactNode } from "react";
-import { RefineCrudCreateProps } from "@pankod/refine-ui-types";
+import React from "react";
 import {
-    Box,
-    BoxProps,
-    Card,
-    CardProps,
-    Group,
-    GroupProps,
-    ActionIcon,
-    Stack,
-    Title,
-    LoadingOverlay,
+  Box,
+  Card,
+  Group,
+  ActionIcon,
+  Stack,
+  Title,
+  LoadingOverlay,
 } from "@mantine/core";
 import {
-    ResourceRouterParams,
-    useNavigation,
-    useRefineContext,
-    useResourceWithRoute,
-    userFriendlyResourceName,
-    useRouterContext,
-    useTranslate,
-} from "@pankod/refine-core";
-import { IconArrowLeft } from "@tabler/icons";
-
-import { SaveButton, SaveButtonProps } from "@components/buttons";
-import { Breadcrumb } from "@components/breadcrumb";
-
-export type CreateProps = RefineCrudCreateProps<
-    SaveButtonProps,
-    GroupProps,
-    GroupProps,
-    CardProps,
-    GroupProps,
-    BoxProps
->;
+  useBack,
+  useNavigation,
+  useRefineContext,
+  useResource,
+  useUserFriendlyName,
+  useRouterType,
+  useTranslate,
+} from "@refinedev/core";
+import { IconArrowLeft } from "@tabler/icons-react";
+import { SaveButton, Breadcrumb, type SaveButtonProps } from "@components";
+import type { CreateProps } from "../types";
+import { RefinePageHeaderClassNames } from "@refinedev/ui-types";
 
 export const Create: React.FC<CreateProps> = (props) => {
-    const {
-        children,
-        saveButtonProps,
-        isLoading,
-        resource: resourceFromProps,
-        footerButtons: footerButtonsFromProps,
-        footerButtonProps,
-        headerButtons: headerButtonsFromProps,
-        headerButtonProps,
-        wrapperProps,
-        contentProps,
-        headerProps,
-        goBack: goBackFromProps,
-        breadcrumb: breadcrumbFromProps,
-        title,
-    } = props;
-    const translate = useTranslate();
+  const {
+    children,
+    saveButtonProps: saveButtonPropsFromProps,
+    isLoading,
+    resource: resourceFromProps,
+    footerButtons: footerButtonsFromProps,
+    footerButtonProps,
+    headerButtons: headerButtonsFromProps,
+    headerButtonProps,
+    wrapperProps,
+    contentProps,
+    headerProps,
+    goBack: goBackFromProps,
+    breadcrumb: breadcrumbFromProps,
+    title,
+  } = props;
+  const translate = useTranslate();
+  const {
+    options: { breadcrumb: globalBreadcrumb } = {},
+  } = useRefineContext();
 
-    const { goBack } = useNavigation();
+  const routerType = useRouterType();
+  const back = useBack();
+  const { goBack } = useNavigation();
+  const getUserFriendlyName = useUserFriendlyName();
 
-    const { useParams } = useRouterContext();
+  const { resource, action, identifier } = useResource(resourceFromProps);
 
-    const { resource: routeResourceName, action: routeFromAction } =
-        useParams<ResourceRouterParams>();
+  const breadcrumb =
+    typeof breadcrumbFromProps === "undefined"
+      ? globalBreadcrumb
+      : breadcrumbFromProps;
 
-    const resourceWithRoute = useResourceWithRoute();
+  const breadcrumbComponent =
+    typeof breadcrumb !== "undefined" ? (
+      <>{breadcrumb}</> ?? undefined
+    ) : (
+      <Breadcrumb />
+    );
 
-    const resource = resourceWithRoute(resourceFromProps ?? routeResourceName);
+  const saveButtonProps: SaveButtonProps = {
+    ...(isLoading ? { disabled: true } : {}),
+    ...saveButtonPropsFromProps,
+  };
 
-    const { options } = useRefineContext();
+  const loadingOverlayVisible = isLoading ?? saveButtonProps?.disabled ?? false;
 
-    const breadcrumb =
-        typeof breadcrumbFromProps === "undefined"
-            ? options?.breadcrumb
-            : breadcrumbFromProps;
+  const defaultFooterButtons = <SaveButton {...saveButtonProps} />;
 
-    const breadcrumbComponent =
-        typeof breadcrumb !== "undefined" ? (
-            <>{breadcrumb}</> ?? undefined
+  const buttonBack =
+    goBackFromProps === (false || null) ? null : (
+      <ActionIcon
+        onClick={
+          action !== "list" || typeof action !== "undefined"
+            ? routerType === "legacy"
+              ? goBack
+              : back
+            : undefined
+        }
+      >
+        {typeof goBackFromProps !== "undefined" ? (
+          goBackFromProps
         ) : (
-            <Breadcrumb />
-        );
-
-    const loadingOverlayVisible =
-        isLoading ?? saveButtonProps?.disabled ?? false;
-
-    const defaultFooterButtons = (
-        <SaveButton
-            {...(isLoading ? { disabled: true } : {})}
-            {...saveButtonProps}
-        />
+          <IconArrowLeft />
+        )}
+      </ActionIcon>
     );
 
-    const buttonBack =
-        goBackFromProps === (false || null) ? null : (
-            <ActionIcon onClick={routeFromAction ? goBack : undefined}>
-                {typeof goBackFromProps !== "undefined" ? (
-                    goBackFromProps
-                ) : (
-                    <IconArrowLeft />
+  const headerButtons = headerButtonsFromProps
+    ? typeof headerButtonsFromProps === "function"
+      ? headerButtonsFromProps({
+          defaultButtons: null,
+        })
+      : headerButtonsFromProps
+    : null;
+
+  const footerButtons = footerButtonsFromProps
+    ? typeof footerButtonsFromProps === "function"
+      ? footerButtonsFromProps({
+          defaultButtons: defaultFooterButtons,
+          saveButtonProps,
+        })
+      : footerButtonsFromProps
+    : defaultFooterButtons;
+
+  return (
+    <Card p="md" {...wrapperProps}>
+      <LoadingOverlay visible={loadingOverlayVisible} />
+      <Group position="apart" align="center" {...headerProps}>
+        <Stack spacing="xs">
+          {breadcrumbComponent}
+          <Group spacing="xs">
+            {buttonBack}
+            {title ?? (
+              <Title
+                order={3}
+                transform="capitalize"
+                className={RefinePageHeaderClassNames.Title}
+              >
+                {translate(
+                  `${identifier}.titles.create`,
+                  `Create ${getUserFriendlyName(
+                    resource?.meta?.label ??
+                      resource?.options?.label ??
+                      resource?.label ??
+                      identifier,
+                    "singular",
+                  )}`,
                 )}
-            </ActionIcon>
-        );
-
-    const headerButtons = headerButtonsFromProps
-        ? typeof headerButtonsFromProps === "function"
-            ? headerButtonsFromProps({
-                  defaultButtons: null,
-              })
-            : headerButtonsFromProps
-        : null;
-
-    const footerButtons = footerButtonsFromProps
-        ? typeof footerButtonsFromProps === "function"
-            ? footerButtonsFromProps({ defaultButtons: defaultFooterButtons })
-            : footerButtonsFromProps
-        : defaultFooterButtons;
-
-    return (
-        <Card p="md" {...wrapperProps}>
-            <LoadingOverlay visible={loadingOverlayVisible} />
-            <Group position="apart" align="center" {...headerProps}>
-                <Stack spacing="xs">
-                    {breadcrumbComponent}
-                    <Group spacing="xs">
-                        {buttonBack}
-                        {title ?? (
-                            <Title order={3} transform="capitalize">
-                                {translate(
-                                    `${resource.name}.titles.create`,
-                                    `Create ${userFriendlyResourceName(
-                                        resource.label ?? resource.name,
-                                        "singular",
-                                    )}`,
-                                )}
-                            </Title>
-                        )}
-                    </Group>
-                </Stack>
-                <Group spacing="xs" {...headerButtonProps}>
-                    {headerButtons}
-                </Group>
-            </Group>
-            <Box pt="sm" {...contentProps}>
-                {children}
-            </Box>
-            <Group position="right" spacing="xs" mt="md" {...footerButtonProps}>
-                {footerButtons}
-            </Group>
-        </Card>
-    );
+              </Title>
+            )}
+          </Group>
+        </Stack>
+        <Group spacing="xs" {...headerButtonProps}>
+          {headerButtons}
+        </Group>
+      </Group>
+      <Box pt="sm" {...contentProps}>
+        {children}
+      </Box>
+      <Group position="right" spacing="xs" mt="md" {...footerButtonProps}>
+        {footerButtons}
+      </Group>
+    </Card>
+  );
 };

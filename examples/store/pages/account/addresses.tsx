@@ -1,16 +1,13 @@
-import { NextPage } from "next";
-import { LayoutWrapper } from "@pankod/refine-core";
+import type { NextPage } from "next";
 
 import { AccountLayout, AddressesTemplate } from "@components";
 
 const Addresses: NextPage = () => {
-    return (
-        <LayoutWrapper>
-            <AccountLayout>
-                <AddressesTemplate />
-            </AccountLayout>
-        </LayoutWrapper>
-    );
+  return (
+    <AccountLayout>
+      <AddressesTemplate />
+    </AccountLayout>
+  );
 };
 
 export default Addresses;
